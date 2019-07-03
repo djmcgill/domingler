@@ -12,6 +12,7 @@ dependencies = [
 name = "dominions-5-mod-joiner"
 version = "0.1.0"
 dependencies = [
+ "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
