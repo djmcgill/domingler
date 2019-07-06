@@ -615,7 +615,7 @@ fn main() {
 //        lines
 //    }).collect();
 //// todo: add the mod names to the description
-//    
+//
 //    for mut mod_file in mod_files {
 //
 //        println!("Looking for #newweapon:");

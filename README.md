@@ -1,17 +1,15 @@
 # Domingler
 
-Takes mods for dominions 5, and edits them so that their declared IDs don't overlap.
+Takes mods for dominions 5, and scans them for the IDs that they use. In the future it will actually 
+mingle them together and remap IDs as needed. 
 
-TODO:
-- weapons
-- armors
-- monsters
-- montags
-- items
-- item restrictions 
-- sites
-- nations
-- enchantments
-- event ids
-- event codes
-- nametype
+### TODO:
+- ID types still not scanned:
+    - events
+    - poptypes
+- scan names:
+    - all existing IDs
+    - also mercs
+- remapping
+- modpack creation
+- proper way to give inputs etc
