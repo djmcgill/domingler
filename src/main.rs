@@ -1,11 +1,10 @@
 #![recursion_limit = "128"]
 
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Regex, Captures};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::str::FromStr;
 
 mod mod_line_scanner;
@@ -30,12 +29,96 @@ lazy_static! {
 
     static ref SPELL_EFFECT: Regex = Regex::new("^#effect (?P<id>[[:digit:]]+)").unwrap();
     static ref SPELL_DAMAGE: Regex = Regex::new("^#damage (?P<id>[[:digit:]]+)").unwrap();
+
+    static ref MOD_DESCRIPTION_LINE: Regex = Regex::new("#description \"[^\"]*\"").unwrap();
+    // n.b. check for `MOD_DESCRIPTION_LINE` first
+    static ref MOD_DESCRIPTION_START: Regex = Regex::new("#description").unwrap();
+
+    // This must be the worst line of code I've ever written lol
+    static ref MOD_DESCRIPTION_STOP: Regex = Regex::new("\"").unwrap();
 }
 
-fn scan_all_mods(mods: &Vec<Vec<String>>) -> HashMap<String, ModDefinition> {
+fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String, MappedModDefinition> {
+    let mut weapons_implicit_definition_count = 0;
+    let mut armours_implicit_definition_count = 0;
+    let mut monsters_implicit_definition_count = 0;
+    let mut name_types_implicit_definition_count = 0;
+    let mut spells_implicit_definition_count = 0;
+    let mut items_implicit_definition_count = 0;
+    let mut sites_implicit_definition_count = 0;
+    let mut nations_implicit_definition_count = 0;
+    let mut events_implicit_definition_count = 0;
+    let mut poptype_implicit_definition_count = 0;
+    let mut montags_implicit_definition_count = 0;
+    let mut event_codes_implicit_definition_count = 0;
+    let mut restricted_items_implicit_definition_count = 0;
+    let mut enchantments_implicit_definition_count = 0;
+
+    for mod_definition in mod_definitions.values() {
+        weapons_implicit_definition_count += mod_definition.weapons.implicit_definitions;
+        armours_implicit_definition_count += mod_definition.armours.implicit_definitions;
+        monsters_implicit_definition_count += mod_definition.monsters.implicit_definitions;
+        name_types_implicit_definition_count += mod_definition.name_types.implicit_definitions;
+        spells_implicit_definition_count += mod_definition.spells.implicit_definitions;
+        nations_implicit_definition_count += mod_definition.nations.implicit_definitions;
+        events_implicit_definition_count += mod_definition.events.implicit_definitions;
+        poptype_implicit_definition_count += mod_definition.poptype.implicit_definitions;
+        montags_implicit_definition_count += mod_definition.montags.implicit_definitions;
+        event_codes_implicit_definition_count += mod_definition.event_codes.implicit_definitions;
+        restricted_items_implicit_definition_count += mod_definition.restricted_items.implicit_definitions;
+    }
+
+    let mut first_available_weapon_id = ASSUMED_FIRST_WEAPON_ID + weapons_implicit_definition_count;
+    let mut first_available_armour_id = ASSUMED_FIRST_ARMOUR_ID + armours_implicit_definition_count;
+    let mut first_available_monster_id = ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
+    let mut first_available_name_type_id = ASSUMED_FIRST_NAMETYPE_ID + name_types_implicit_definition_count;
+    let mut first_available_spell_id = ASSUMED_FIRST_SPELL_ID + spells_implicit_definition_count;
+    let mut first_available_nations_id = ASSUMED_FIRST_NATION_ID + nations_implicit_definition_count;
+    let mut first_available_montags_id = ASSUMED_FIRST_MONTAG_ID + montags_implicit_definition_count;
+    let mut first_available_event_codes_id = ASSUMED_FIRST_EVENTCODE_ID + event_codes_implicit_definition_count;
+    let mut first_available_restricted_items_id = ASSUMED_FIRST_RESTRICTED_ITEM_ID + restricted_items_implicit_definition_count;
+
+    let mut mapped_mods = HashMap::new();
+    for (mod_name, mod_definition) in mod_definitions.into_iter() {
+        let mapped_mod = MappedModDefinition {
+            weapons: remap_particular_ids(&mut first_available_weapon_id, &mod_definition.weapons.defined_ids),
+            armours: remap_particular_ids(&mut first_available_armour_id, &mod_definition.armours.defined_ids),
+            monsters: remap_particular_ids(&mut first_available_monster_id, &mod_definition.monsters.defined_ids),
+            name_types: remap_particular_ids(&mut first_available_name_type_id, &mod_definition.name_types.defined_ids),
+            spells: remap_particular_ids(&mut first_available_spell_id, &mod_definition.spells.defined_ids),
+            nations: remap_particular_ids(&mut first_available_nations_id, &mod_definition.nations.defined_ids),
+            montags: remap_particular_ids(&mut first_available_montags_id, &mod_definition.montags.defined_ids),
+            event_codes: remap_particular_ids(&mut first_available_event_codes_id, &mod_definition.event_codes.defined_ids),
+            restricted_items: remap_particular_ids(&mut first_available_restricted_items_id, &mod_definition.restricted_items.defined_ids),
+
+//            items: unimplemented!(),
+//            sites: unimplemented!(),
+//            events: unimplemented!(),
+//            poptype: unimplemented!(),
+//            enchantments: unimplemented!()
+        };
+
+        // Clone doesn't seem to be needed if we consume self
+        mapped_mods.insert(mod_name.clone(), mapped_mod);
+    }
+
+    mapped_mods
+}
+
+fn remap_particular_ids(first_available_id: &mut u32, mod_definitions: &HashSet<u32>) -> HashMap<u32, u32> {
+    let mut mapped_ids = HashMap::new();
+
+    for mod_definition_id in mod_definitions {
+        mapped_ids.insert(*mod_definition_id, *first_available_id);
+        *first_available_id += 1;
+    }
+    mapped_ids
+}
+
+
+fn scan_all_mods(mods: &Vec<(String, Vec<String>)>) -> HashMap<String, ModDefinition> {
     let mut hash_map = HashMap::new();
-    for mod_lines in mods {
-        let mut option_mod_name: Option<String> = None;
+    for (path, mod_lines) in mods {
         let mut mod_definition: ModDefinition = ModDefinition::default();
 
         // Okay here's the deal: parsing global enchantment IDs is a bit weird.
@@ -48,11 +131,7 @@ fn scan_all_mods(mods: &Vec<Vec<String>>) -> HashMap<String, ModDefinition> {
             // Capture name
             if let Some(name_capture) = MOD_NAME.captures(&line) {
                 let found_name = name_capture.name("name").unwrap().as_str();
-                if option_mod_name.is_none() {
-                    option_mod_name = Some(found_name.to_owned());
-                } else {
-                    panic!("Somehow found two #modname commands in a mod???");
-                }
+                mod_definition.name = found_name.to_owned();
             }
             // If we're inside a block and find a #end, close it
             // Note that not every #end will have a matching block
@@ -71,6 +150,7 @@ fn scan_all_mods(mods: &Vec<Vec<String>>) -> HashMap<String, ModDefinition> {
 
             // Capture declarations:
             // As soon as any match, move on
+            // TODO: combine these into a single regex to speed up
             let _ = WEAPON_LINE_SCANNER.scan_line(line, &mut mod_definition.weapons) ||
                 ARMOUR_LINE_SCANNER.scan_line(line, &mut mod_definition.armours) ||
                 SPELL_LINE_SCANNER.scan_line(line, &mut mod_definition.spells) ||
@@ -84,8 +164,7 @@ fn scan_all_mods(mods: &Vec<Vec<String>>) -> HashMap<String, ModDefinition> {
                 RESTRICTED_ITEM_LINE_SCANNER.scan_line(line, &mut mod_definition.restricted_items);
         }
 
-        let mod_name = option_mod_name.unwrap_or_else(|| panic!("Could not find the mod's name"));
-        hash_map.insert(mod_name, mod_definition);
+        hash_map.insert(path.clone(), mod_definition);
     }
     hash_map
 }
@@ -233,37 +312,107 @@ fn main() {
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_U_v1.12.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/MA_Sawaikii.dm",
     ];
-    let mod_files: Vec<Vec<String>> = mod_file_paths
+    // TODO: no real point loading these all into memory
+    let mod_files: Vec<(String, Vec<String>)> = mod_file_paths
         .into_iter()
         .map(|path| {
             let file = File::open(path).unwrap();
             let file_buff = BufReader::new(file);
             let line_iter = file_buff.lines().map(|result| result.unwrap());
             let lines: Vec<String> = line_iter.collect();
-            lines
+            (path.to_owned(), lines)
         })
         .collect();
     let parsed_mods = scan_all_mods(&mod_files);
     print_mod_id_usages(&parsed_mods);
 
-    //    let mut first_available_weapon_id = ASSUMED_FIRST_WEAPON_ID;
-    //    let mut first_available_armour_id = ASSUMED_FIRST_ARMOUR_ID;
-    //    let mut first_available_monster_id = ASSUMED_FIRST_MONSTER_ID;
-    //
-    //    let mut lines: Vec<String> = vec![
-    //        "#modname \"domingler mod test\"".to_owned(),
-    //        format!("#description \"a combination of: some shit or whatever\""),
-    //    ];
-    //
-    //    let mod_files: Vec<Vec<String>> = mod_file_paths.into_iter().map(|path| {
-    //        let file = File::open(path).unwrap();
-    //        let file_buff = BufReader::new(file);
-    //        let line_iter = file_buff.lines().map(|result| result.unwrap());
-    //        let lines: Vec<String> = line_iter.collect();
-    //        lines
-    //    }).collect();
-    //// todo: add the mod names to the description
-    //
+    let remapped_ids = remap_ids(&parsed_mods);
+
+    // TODO: add the mod names to the description
+    let mut lines: Vec<String> = vec![
+        "#modname \"domingler mod test\"".to_owned(),
+        format!("#description \"a combination of: some shit or whatever\""),
+    ];
+
+    for (path, mapped_definition) in remapped_ids {
+        let file = File::open(path).unwrap();
+        let file_buff = BufReader::new(file);
+        let line_iter = file_buff.lines().map(|result| result.unwrap());
+
+        let mut is_in_description = false;
+        for line in line_iter {
+            if is_in_description {
+                if MOD_DESCRIPTION_STOP.is_match(&line) {
+                    // End of description, ditch this line and then continue as normal
+                    is_in_description = false;
+                    continue;
+                } else {
+                    // Throw away a description line
+                    continue;
+                }
+            }
+
+            // TODO: also ditch icon and version
+            if MOD_NAME.is_match(&line) {
+                // ditch the mod name
+                continue;
+            } else if MOD_DESCRIPTION_LINE.is_match(&line) {
+                // ditch the description line
+                continue;
+            } else if MOD_DESCRIPTION_START.is_match(&line) {
+                // Description has started, ditch the line
+                is_in_description = true;
+                continue;
+            } else {
+                if let Some(capture) = mod_line_scanner::USE_NUMBERED_WEAPON.captures(&line) {
+                    let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+                    if let Some(new_id) = mapped_definition.weapons.get(&found_id) {
+                        let new_line: String = USE_NUMBERED_WEAPON.replace(&line, |ref captures: &Captures| -> String {
+                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                        }).to_string();
+                        lines.push(new_line);
+                        continue;
+                    }
+                } else if let Some(capture) = mod_line_scanner::USE_NUMBERED_ARMOUR.captures(&line) {
+                    let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+                    if let Some(new_id) = mapped_definition.armours.get(&found_id) {
+                        let new_line: String = USE_NUMBERED_ARMOUR.replace(&line, |ref captures: &Captures| -> String {
+                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                        }).to_string();
+                        lines.push(new_line);
+                        continue;
+                    }
+                } else if let Some(capture) = mod_line_scanner::USE_MONSTER.captures(&line) {
+                    let found_id = i32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+                    if found_id > 0 {
+                        if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
+                            let new_line: String = USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
+                                format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                            }).to_string();
+                            lines.push(new_line);
+                            continue;
+                        }
+                    } else {
+                        // it's a montag!
+                        lines.push(line.clone());
+                        continue; // don't need these continues I guess
+                    }
+
+                } else { // TODO: the other stuff too
+                    lines.push(line.clone())
+                }
+            }
+        }
+
+    }
+
+    let new_file = File::create("/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/domingler-test.dm").unwrap();
+    let mut writer = BufWriter::new(new_file);
+    for line in lines {
+        write!(&mut writer, "{}\n", line).unwrap();
+    }
+
+
     //    for mut mod_file in mod_files {
     //
     //        println!("Looking for #newweapon:");

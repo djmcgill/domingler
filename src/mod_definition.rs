@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::marker::PhantomData;
 
 // A particular thing: weapons, armours, etc
@@ -9,7 +9,7 @@ pub struct Definition<'a> {
     pub defined_ids: HashSet<u32>,
 
     // From #newfoo with no id
-    pub implicit_definitions: usize,
+    pub implicit_definitions: u32,
 
     // From #selectfoo <id> where id < FIRST_ASSUMED_ID
     pub vanilla_edited_ids: HashSet<u32>,
@@ -29,6 +29,7 @@ impl<'a> Default for Definition<'a> {
 }
 #[derive(Default)]
 pub struct ModDefinition<'a> {
+    pub name: String,
     pub weapons: Definition<'a>,
     pub armours: Definition<'a>,
     pub monsters: Definition<'a>,
@@ -43,4 +44,16 @@ pub struct ModDefinition<'a> {
     pub event_codes: Definition<'a>,
     pub restricted_items: Definition<'a>,
     pub enchantments: HashSet<u32>,
+}
+
+pub struct MappedModDefinition {
+    pub weapons: HashMap<u32, u32>,
+    pub armours: HashMap<u32, u32>,
+    pub monsters: HashMap<u32, u32>,
+    pub name_types: HashMap<u32, u32>,
+    pub spells: HashMap<u32, u32>,
+    pub nations: HashMap<u32, u32>,
+    pub montags: HashMap<u32, u32>,
+    pub event_codes: HashMap<u32, u32>,
+    pub restricted_items: HashMap<u32, u32>,
 }

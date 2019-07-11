@@ -202,7 +202,7 @@ lazy_static! {
         (?P<suffix>.*)$\
     ").unwrap();
 
-    static ref USE_NUMBERED_WEAPON: Regex = Regex::new("^\
+    pub static ref USE_NUMBERED_WEAPON: Regex = Regex::new("^\
         (?P<prefix>(#(?:\
             newweapon|\
             weapon|\
@@ -225,7 +225,7 @@ lazy_static! {
         (?P<suffix>.*)$\
     ").unwrap();
 
-    static ref USE_NUMBERED_ARMOUR: Regex = Regex::new("^\
+    pub static ref USE_NUMBERED_ARMOUR: Regex = Regex::new("^\
         (?P<prefix>(#(?:\
             newarmor|\
             armor|\
@@ -320,7 +320,7 @@ lazy_static! {
     ").unwrap();
 
     // FIXME: negative number for montags
-    static ref USE_MONSTER: Regex = Regex::new("^\
+    pub static ref USE_MONSTER: Regex = Regex::new("^\
         (?P<prefix>(#(?:\
             newmonster|\
             copyspr|\
@@ -452,7 +452,7 @@ lazy_static! {
             addrecunit|\
             addreccom|\
             copystats) ))\
-        (?P<id>[[:digit:]]+)\
+        (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
