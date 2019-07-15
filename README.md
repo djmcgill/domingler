@@ -13,3 +13,7 @@ mingle them together and remap IDs as needed.
 - remapping
 - modpack creation
 - proper way to give inputs etc
+
+### Known bugs:
+- enchantment numbers not mapped
+- summoning spells don't remap!!

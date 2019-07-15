@@ -43,7 +43,7 @@ pub struct ModDefinition<'a> {
     pub montags: Definition<'a>,
     pub event_codes: Definition<'a>,
     pub restricted_items: Definition<'a>,
-    pub enchantments: HashSet<u32>,
+    pub enchantments: HashSet<u32>, // no implicit or named declares
 }
 
 pub struct MappedModDefinition {
@@ -52,8 +52,13 @@ pub struct MappedModDefinition {
     pub monsters: HashMap<u32, u32>,
     pub name_types: HashMap<u32, u32>,
     pub spells: HashMap<u32, u32>,
+    pub items: HashMap<u32, u32>,
+    pub sites: HashMap<u32, u32>,
     pub nations: HashMap<u32, u32>,
+    // pub events // can't clash by id
     pub montags: HashMap<u32, u32>,
     pub event_codes: HashMap<u32, u32>,
     pub restricted_items: HashMap<u32, u32>,
+    pub enchantments: HashMap<u32, u32>,
+
 }

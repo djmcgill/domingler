@@ -30,6 +30,10 @@ lazy_static! {
     static ref SPELL_EFFECT: Regex = Regex::new("^#effect (?P<id>[[:digit:]]+)").unwrap();
     static ref SPELL_DAMAGE: Regex = Regex::new("^#damage (?P<id>[[:digit:]]+)").unwrap();
 
+    static ref MOD_NAME_LINE: Regex = Regex::new("#modname").unwrap();
+    static ref MOD_ICON_LINE: Regex = Regex::new("#icon").unwrap();
+    static ref MOD_VERSION_LINE: Regex = Regex::new("#version").unwrap();
+    static ref MOD_DOMVERSION_LINE: Regex = Regex::new("#domversion").unwrap();
     static ref MOD_DESCRIPTION_LINE: Regex = Regex::new("#description \"[^\"]*\"").unwrap();
     // n.b. check for `MOD_DESCRIPTION_LINE` first
     static ref MOD_DESCRIPTION_START: Regex = Regex::new("#description").unwrap();
@@ -53,6 +57,7 @@ fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String
     let mut event_codes_implicit_definition_count = 0;
     let mut restricted_items_implicit_definition_count = 0;
     let mut enchantments_implicit_definition_count = 0;
+    let mut items_implicit_definition_count = 0;
 
     for mod_definition in mod_definitions.values() {
         weapons_implicit_definition_count += mod_definition.weapons.implicit_definitions;
@@ -66,6 +71,7 @@ fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String
         montags_implicit_definition_count += mod_definition.montags.implicit_definitions;
         event_codes_implicit_definition_count += mod_definition.event_codes.implicit_definitions;
         restricted_items_implicit_definition_count += mod_definition.restricted_items.implicit_definitions;
+        items_implicit_definition_count += mod_definition.items.implicit_definitions;
     }
 
     let mut first_available_weapon_id = ASSUMED_FIRST_WEAPON_ID + weapons_implicit_definition_count;
@@ -77,6 +83,9 @@ fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String
     let mut first_available_montags_id = ASSUMED_FIRST_MONTAG_ID + montags_implicit_definition_count;
     let mut first_available_event_codes_id = ASSUMED_FIRST_EVENTCODE_ID + event_codes_implicit_definition_count;
     let mut first_available_restricted_items_id = ASSUMED_FIRST_RESTRICTED_ITEM_ID + restricted_items_implicit_definition_count;
+    let mut first_available_enchantment_id = 0; // FIXME: should this be zero?
+    let mut first_available_item_id = ASSUMED_FIRST_ITEM_ID + items_implicit_definition_count;
+    let mut first_available_site_id = ASSUMED_FIRST_SITE_ID + sites_implicit_definition_count;
 
     let mut mapped_mods = HashMap::new();
     for (mod_name, mod_definition) in mod_definitions.into_iter() {
@@ -90,12 +99,10 @@ fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String
             montags: remap_particular_ids(&mut first_available_montags_id, &mod_definition.montags.defined_ids),
             event_codes: remap_particular_ids(&mut first_available_event_codes_id, &mod_definition.event_codes.defined_ids),
             restricted_items: remap_particular_ids(&mut first_available_restricted_items_id, &mod_definition.restricted_items.defined_ids),
-
-//            items: unimplemented!(),
-//            sites: unimplemented!(),
-//            events: unimplemented!(),
-//            poptype: unimplemented!(),
-//            enchantments: unimplemented!()
+            enchantments: remap_particular_ids(&mut first_available_enchantment_id, &mod_definition.enchantments),
+            items: remap_particular_ids(&mut first_available_item_id, &mod_definition.items.defined_ids),
+            sites: remap_particular_ids(&mut first_available_site_id, &mod_definition.sites.defined_ids),
+//            poptype: unimplemented!(), FIXME: is this an issue or not?
         };
 
         // Clone doesn't seem to be needed if we consume self
@@ -273,44 +280,11 @@ fn min_max<'a>(mut items: impl Iterator<Item = &'a u32>) -> Option<(u32, Option<
     }
 }
 
-//fn map_ids(debug_str: &'static str,
-//           lines: &mut Vec<String>,
-//           use_regex: &Regex,
-//           mapped_ids: &HashMap<u32, u32>) {
-
-//    for line in lines {
-//        let option_replacement = match use_regex.captures(line) {
-//            None => None,
-//            Some(line_capture) => {
-////                println!("capture: {:?}", line_capture);
-//                let found_id = u32::from_str(line_capture.name("id").unwrap().as_str()).unwrap();
-//                match mapped_ids.get(&found_id) {
-//                    None => None,
-//                    Some(new_id) => {
-//                        print!("found use of modded {} {}, mapping to {} ", debug_str, found_id, new_id);
-//                        let new_line: String = use_regex.replace(&line, |ref captures: &Captures| -> String {
-//                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-//                        }).to_string();
-//                        println!("new line is: '{}'", new_line);
-//                        Some(new_line)
-//                    }
-//                }
-//            }
-//        };
-//        for replacement in option_replacement {
-//            *line = replacement;
-//        }
-//    }
-//}
-// FIXME: remove mod name, icon, description, version
-
 fn main() {
+    // TODO: get this from the user somehow
     let mod_file_paths = vec![
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Karanaac_v1.26.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Bethel_Sheem_v1.05.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Nabatem_v1.24.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_U_v1.12.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/MA_Sawaikii.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Firepower.dm",
     ];
     // TODO: no real point loading these all into memory
     let mod_files: Vec<(String, Vec<String>)> = mod_file_paths
@@ -327,6 +301,9 @@ fn main() {
     print_mod_id_usages(&parsed_mods);
 
     let remapped_ids = remap_ids(&parsed_mods);
+    for k in remapped_ids.keys() {
+        println!("KEY: {}", k);
+    }
 
     // TODO: add the mod names to the description
     let mut lines: Vec<String> = vec![
@@ -335,9 +312,16 @@ fn main() {
     ];
 
     for (path, mapped_definition) in remapped_ids {
+        println!("NATION MAP:");
+        for (k, v) in &mapped_definition.nations {
+            println!("- {}: {}", k, v);
+        }
+
         let file = File::open(path).unwrap();
         let file_buff = BufReader::new(file);
         let line_iter = file_buff.lines().map(|result| result.unwrap());
+
+//        let mut option_current_spell_block: Option<Vec<String>> = None;
 
         let mut is_in_description = false;
         for line in line_iter {
@@ -350,56 +334,88 @@ fn main() {
                     // Throw away a description line
                     continue;
                 }
+            } else {
+                // FIXME: this should not throw away lines but should put them into the mod!!!
+//                if let Some(current_spell_block) = &mut option_current_spell_block {
+//                    current_spell_block.push(line.clone());
+//                    if END.is_match(&line) {
+//                        // FIXME: map ench
+//                        // URGH going to need some lookahead on this
+//
+//                        option_current_spell_block = None;
+//                        continue; // an #end isn't something we care about otherwise
+//                    }
+//                } else if SPELL_BLOCK_START.is_match(&line) {
+//                    // If we find a #newspell or a #selectspell, start recording lines
+//                    option_current_spell_block = Some(Vec::new());
+//                }
             }
 
-            // TODO: also ditch icon and version
-            if MOD_NAME.is_match(&line) {
-                // ditch the mod name
-                continue;
-            } else if MOD_DESCRIPTION_LINE.is_match(&line) {
-                // ditch the description line
+            // TODO: also ditch icon and version and domversion
+            if MOD_NAME_LINE.is_match(&line) ||
+                MOD_DESCRIPTION_LINE.is_match(&line) ||
+                MOD_ICON_LINE.is_match(&line) ||
+                MOD_VERSION_LINE.is_match(&line) ||
+                MOD_DOMVERSION_LINE.is_match(&line) {
+                // ditch the mod info
                 continue;
             } else if MOD_DESCRIPTION_START.is_match(&line) {
                 // Description has started, ditch the line
                 is_in_description = true;
                 continue;
             } else {
-                if let Some(capture) = mod_line_scanner::USE_NUMBERED_WEAPON.captures(&line) {
-                    let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                    if let Some(new_id) = mapped_definition.weapons.get(&found_id) {
-                        let new_line: String = USE_NUMBERED_WEAPON.replace(&line, |ref captures: &Captures| -> String {
-                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                        }).to_string();
-                        lines.push(new_line);
-                        continue;
-                    }
-                } else if let Some(capture) = mod_line_scanner::USE_NUMBERED_ARMOUR.captures(&line) {
-                    let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                    if let Some(new_id) = mapped_definition.armours.get(&found_id) {
-                        let new_line: String = USE_NUMBERED_ARMOUR.replace(&line, |ref captures: &Captures| -> String {
-                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                        }).to_string();
-                        lines.push(new_line);
-                        continue;
-                    }
-                } else if let Some(capture) = mod_line_scanner::USE_MONSTER.captures(&line) {
-                    let found_id = i32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                    if found_id > 0 {
-                        if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
-                            let new_line: String = USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
-                                format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                            }).to_string();
-                            lines.push(new_line);
-                            continue;
+                let new_line = replace_use(
+                    &line,
+                    &mapped_definition.weapons,
+                    &mod_line_scanner::USE_NUMBERED_WEAPON
+                ).or_else(||
+                    replace_use(
+                        &line,
+                        &mapped_definition.armours,
+                        &mod_line_scanner::USE_NUMBERED_ARMOUR)
+                ).or_else(|| {
+                    if let Some(capture) = mod_line_scanner::USE_MONSTER.captures(&line) {
+                        let found_id = i32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+                        if found_id > 0 {
+                            if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
+                                let new_line: String = USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
+                                    format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                                }).to_string();
+                                Some(new_line)
+                            } else {
+                                Some(line.clone())
+                            }
+                        } else {
+                            // it's a montag!
+                            Some(line.clone())
                         }
-                    } else {
-                        // it's a montag!
-                        lines.push(line.clone());
-                        continue; // don't need these continues I guess
-                    }
+                    } else { None }
+                }).or_else(||
+                    replace_use(&line, &mapped_definition.name_types, &mod_line_scanner::USE_NAMETYPE)
+                ).or_else(||
+                    replace_use(&line, &mapped_definition.spells, &mod_line_scanner::USE_NUMBERED_SPELL)
+                ).or_else(||
+                    replace_use(&line, &mapped_definition.nations, &mod_line_scanner::USE_NUMBERED_NATION)
+                ).or_else(||
+                    // n.b.: some of the montags have been mapped in the monsters step above
+                    replace_use(&line, &mapped_definition.montags, &mod_line_scanner::USE_NUMBERED_MONTAG)
+                ).or_else(||
+                    replace_use(&line, &mapped_definition.event_codes, &mod_line_scanner::USE_NUMBERED_EVENTCODE)
+                ).or_else(||
+                    replace_use(&line, &mapped_definition.restricted_items, &mod_line_scanner::USE_NUMBERED_RESTRICTED_ITEM)
+                ).or_else(||
+                    replace_use(&line, &mapped_definition.items, &mod_line_scanner::USE_NUMBERED_ITEM)
+                ).or_else(||
+                    replace_use(&line, &mapped_definition.sites, &mod_line_scanner::USE_NUMBERED_SITE)
+                )
+                    // FIXME: enchantment mapping is currently broken
+//                .or_else(||
+//                    replace_use(&line, &mapped_definition.enchantments, &mod_line_scanner::USE_GLOBAL_ENCHANTMENT)
+//                )
+                .or_else(|| Some(line.clone()));
 
-                } else { // TODO: the other stuff too
-                    lines.push(line.clone())
+                if let Some(some_new_line) = new_line {
+                    lines.push(some_new_line);
                 }
             }
         }
@@ -411,31 +427,20 @@ fn main() {
     for line in lines {
         write!(&mut writer, "{}\n", line).unwrap();
     }
+}
 
-
-    //    for mut mod_file in mod_files {
-    //
-    //        println!("Looking for #newweapon:");
-    //        let mapped_weapon_ids = create_id_map(mod_file.iter(), &NEW_WEAPON, &mut first_available_weapon_id);
-    //        println!("Looking for #newarmor:");
-    //        let mapped_armor_ids = create_id_map(mod_file.iter(), &NEW_ARMOUR, &mut first_available_armour_id);
-    //        println!("Looking for #newmonster:");
-    //        let mapped_monster_ids = create_id_map(mod_file.iter(), &NEW_MONSTER, &mut first_available_monster_id);
-    //
-    //
-    //        println!("Looking for weapon use:");
-    //        map_ids("weapon", &mut mod_file, &USE_WEAPON, &mapped_weapon_ids);
-    //        println!("Looking for armour use:");
-    //        map_ids("armour", &mut mod_file, &USE_ARMOUR, &mapped_armor_ids);
-    //        println!("Looking monster use:");
-    //        map_ids("monster", &mut mod_file, &USE_MONSTER, &mapped_monster_ids);
-    //
-    //        lines.extend(mod_file);
-    //    }
-    //
-    //    let new_file = File::create("/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/domingler-test.dm").unwrap();
-    //    let mut writer = BufWriter::new(new_file);
-    //    for line in lines {
-    //        write!(&mut writer, "{}\n", line).unwrap();
-    //    }
+fn replace_use(line: &str, map: &HashMap<u32, u32>, regex: &Regex) -> Option<String> {
+    if let Some(capture) = regex.captures(&line) {
+        let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+        if let Some(new_id) = map.get(&found_id) {
+            let new_line: String = regex.replace(&line, |ref captures: &Captures| -> String {
+                format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+            }).to_string();
+            Some(new_line)
+        } else {
+            Some(line.to_owned())
+        }
+    } else {
+        None
+    }
 }
