@@ -3,16 +3,21 @@ use regex::Regex;
 use std::str::FromStr;
 use lazy_static::lazy_static;
 
-pub const ASSUMED_FIRST_WEAPON_ID: u32 = 800;
-pub const ASSUMED_FIRST_ARMOUR_ID: u32 = 300;
-pub const ASSUMED_FIRST_MONSTER_ID: u32 = 4000;
-pub const ASSUMED_FIRST_NAMETYPE_ID: u32 = 165;
-pub const ASSUMED_FIRST_SPELL_ID: u32 = 1300;
-pub const ASSUMED_FIRST_SITE_ID: u32 = 1500;
-pub const ASSUMED_FIRST_NATION_ID: u32 = 120;
-pub const ASSUMED_FIRST_ITEM_ID: u32 = 500;
-pub const ASSUMED_FIRST_MONTAG_ID: u32 = 1000;
-pub const ASSUMED_FIRST_EVENTCODE_ID: u32 = 300; // technically it's negative but whatever
+pub const ASSUMED_FIRST_WEAPON_ID: u32 = 801;
+pub const ASSUMED_FIRST_ARMOUR_ID: u32 = 301;
+pub const ASSUMED_FIRST_MONSTER_ID: u32 = 4001;
+pub const ASSUMED_FIRST_NAMETYPE_ID: u32 = 171;
+pub const ASSUMED_FIRST_SPELL_ID: u32 = 1301;
+pub const ASSUMED_FIRST_SITE_ID: u32 = 1501;
+pub const ASSUMED_FIRST_NATION_ID: u32 = 152;
+// FIXME: nations overflowing
+// Vespika not mapping?
+//-- IDLIST: Monsters = 7200-7250, Weapons = 1700-1720, Nation = 174, Namelist = 174
+//
+//#selectnation 174
+pub const ASSUMED_FIRST_ITEM_ID: u32 = 501;
+pub const ASSUMED_FIRST_MONTAG_ID: u32 = 1001;
+pub const ASSUMED_FIRST_EVENTCODE_ID: u32 = 301; // technically it's negative but whatever
 pub const ASSUMED_FIRST_RESTRICTED_ITEM_ID: u32 = 1;
 
 pub struct ModLineScanner {
@@ -38,10 +43,13 @@ impl ModLineScanner {
             if let Some(capture) = new_numbered_regex.captures(line) {
                 let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
                 let not_already_there = thing_definition.defined_ids.insert(found_id);
-                assert!(not_already_there);
+                if !not_already_there {
+                    println!("WARNING: ID in {} was already declared by somebody else", line);
+                }
                 return true;
             }
-        } else if let Some(select_numbered_regex) = self.option_select_numbered_regex {
+        }
+        if let Some(select_numbered_regex) = self.option_select_numbered_regex {
             if let Some(capture) = select_numbered_regex.captures(line) {
                 let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
                 if found_id >= self.assumed_minimum {
@@ -51,8 +59,55 @@ impl ModLineScanner {
                 }
                 return true;
             }
-        } else if let Some(new_unnumbered_regex) = self.option_new_unnumbered_regex {
+        }
+        if let Some(new_unnumbered_regex) = self.option_new_unnumbered_regex {
             if new_unnumbered_regex.is_match(line) {
+                thing_definition.implicit_definitions += 1;
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn scan_line_debug<'a>(&self,
+                         line: &'a str,
+                         thing_definition: &mut Definition<'a>) -> bool {
+        let debug_line = NEW_UNNUMBERED_SITE.is_match(line);
+        if debug_line { println!("{}", line); }
+
+        if let Some(new_numbered_regex) = self.option_new_numbered_regex {
+            if debug_line { println!("70 {:?}", new_numbered_regex); }
+            if let Some(capture) = new_numbered_regex.captures(line) {
+                if debug_line { println!("71 {:?}", capture); }
+                let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+                let not_already_there = thing_definition.defined_ids.insert(found_id);
+                if !not_already_there {
+                    println!("WARNING: ID in {} was already declared by somebody else", line);
+                }
+                return true;
+            }
+        }
+        if let Some(select_numbered_regex) = self.option_select_numbered_regex {
+            if debug_line { println!("79 {:?}", select_numbered_regex); }
+            if let Some(capture) = select_numbered_regex.captures(line) {
+                if debug_line { println!("81 {:?}", capture); }
+                let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+                if found_id >= self.assumed_minimum {
+                    println!("defined");
+                    thing_definition.defined_ids.insert(found_id);
+                } else {
+                    println!("vanilla");
+                    thing_definition.vanilla_edited_ids.insert(found_id);
+                }
+                return true;
+            }
+        }
+        if let Some(new_unnumbered_regex) = self.option_new_unnumbered_regex {
+            if debug_line { println!("93 {:?}", new_unnumbered_regex); }
+
+            if new_unnumbered_regex.is_match(line) {
+                println!("implicit");
+
                 thing_definition.implicit_definitions += 1;
                 return true;
             }
@@ -345,7 +400,6 @@ lazy_static! {
         (?P<suffix>.*)$\
     ").unwrap();
 
-    // FIXME: negative number for montags
     pub static ref USE_MONSTER: Regex = Regex::new("^\
         (?P<prefix>(#(?:\
             newmonster|\
