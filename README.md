@@ -10,8 +10,6 @@ mingle them together and remap IDs as needed.
 - scan names:
     - all existing IDs
     - also mercs
-- modpack creation
 - proper way to give inputs etc
 - check limits
-- far summon spells
 - there's a bunch of FIXMEs

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, BTreeSet};
 use crate::mod_definition::ModDefinition;
 use std::str::FromStr;
 
@@ -42,7 +42,6 @@ pub fn scan_all_mods(mods: &Vec<(String, Vec<String>)>) -> HashMap<String, ModDe
                 crate::SPELL_LINE_SCANNER.scan_line(line, &mut mod_definition.spells) ||
                 crate::MONSTER_LINE_SCANNER.scan_line(line, &mut mod_definition.monsters) ||
                 crate::ITEM_LINE_SCANNER.scan_line(line, &mut mod_definition.items) ||
-                // FIXME: #newsite isn't correctly incrementing the site ID
                 crate::SITE_LINE_SCANNER.scan_line(line, &mut mod_definition.sites) ||
                 crate::NATION_LINE_SCANNER.scan_line(line, &mut mod_definition.nations) ||
                 crate::NAMETYPE_LINE_SCANNER.scan_line(line, &mut mod_definition.name_types) ||
@@ -56,7 +55,7 @@ pub fn scan_all_mods(mods: &Vec<(String, Vec<String>)>) -> HashMap<String, ModDe
     hash_map
 }
 
-fn parse_spell_block(block: &Vec<&str>, mod_enchantments: &mut HashSet<u32>) {
+fn parse_spell_block(block: &Vec<&str>, mod_enchantments: &mut BTreeSet<u32>) {
     // parse as u64 because some mods have non-u32 values in here???
     let mut option_damage: Option<i64> = None;
     let mut option_effect: Option<u64> = None;
@@ -98,7 +97,7 @@ pub fn print_mod_id_usages(hash_map: &HashMap<String, ModDefinition>) {
     }
 }
 
-fn print_list(name: &str, items: &HashSet<u32>) {
+fn print_list(name: &str, items: &BTreeSet<u32>) {
     let mut items: Vec<u32> = items.iter().cloned().collect();
     items.sort_unstable();
     match items.len() {
@@ -114,7 +113,7 @@ fn print_list(name: &str, items: &HashSet<u32>) {
     }
 }
 
-fn print_min_max(name: &str, items: &HashSet<u32>) {
+fn print_min_max(name: &str, items: &BTreeSet<u32>) {
     match min_max(items.iter()) {
         None => {}
         Some((min, None)) => {

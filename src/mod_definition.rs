@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, BTreeSet};
 use std::marker::PhantomData;
 
 // A particular thing: weapons, armours, etc
@@ -6,13 +6,13 @@ use std::marker::PhantomData;
 pub struct Definition<'a> {
     // From #newfoo <id> and
     // #selectfoo <id> where id >= FIRST_ASSUMED_ID
-    pub defined_ids: HashSet<u32>,
+    pub defined_ids: BTreeSet<u32>,
 
     // From #newfoo with no id
     pub implicit_definitions: u32,
 
     // From #selectfoo <id> where id < FIRST_ASSUMED_ID
-    pub vanilla_edited_ids: HashSet<u32>,
+    pub vanilla_edited_ids: BTreeSet<u32>,
 
     // PLACEHOLDER: because I know I'm going to have to put strings in here again
     whatever: PhantomData<&'a ()>,
@@ -20,9 +20,9 @@ pub struct Definition<'a> {
 impl<'a> Default for Definition<'a> {
     fn default() -> Self {
         Self {
-            defined_ids: HashSet::new(),
+            defined_ids: BTreeSet::new(),
             implicit_definitions: 0,
-            vanilla_edited_ids: HashSet::new(),
+            vanilla_edited_ids: BTreeSet::new(),
             whatever: PhantomData,
         }
     }
@@ -43,7 +43,7 @@ pub struct ModDefinition<'a> {
     pub montags: Definition<'a>,
     pub event_codes: Definition<'a>,
     pub restricted_items: Definition<'a>,
-    pub enchantments: HashSet<u32>, // no implicit or named declares
+    pub enchantments: BTreeSet<u32>, // no implicit or named declares
 }
 
 pub struct MappedModDefinition {

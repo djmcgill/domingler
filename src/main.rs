@@ -19,7 +19,7 @@ use mod_definition::*;
 lazy_static! {
     static ref MOD_NAME: Regex = Regex::new(
         "^\
-         (?P<prefix>#modname \")\
+         (?P<prefix>#modname[ ]+\")\
          (?P<name>[^\"]+)\
          (?P<suffix>\".*)$\
          "
@@ -31,12 +31,12 @@ lazy_static! {
     static ref SPELL_BLOCK_START: Regex = Regex::new("^#(newspell|selectspell)").unwrap();
 
     static ref SPELL_EFFECT: Regex = Regex::new("^\
-        (?P<prefix>#effect )\
+        (?P<prefix>#effect[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_DAMAGE: Regex = Regex::new("^\
-        (?P<prefix>#damage )\
+        (?P<prefix>#damage[ ]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
@@ -45,7 +45,7 @@ lazy_static! {
     static ref MOD_ICON_LINE: Regex = Regex::new("#icon").unwrap();
     static ref MOD_VERSION_LINE: Regex = Regex::new("#version").unwrap();
     static ref MOD_DOMVERSION_LINE: Regex = Regex::new("#domversion").unwrap();
-    static ref MOD_DESCRIPTION_LINE: Regex = Regex::new("#description \"[^\"]*\"").unwrap();
+    static ref MOD_DESCRIPTION_LINE: Regex = Regex::new("#description[ ]+\"[^\"]*\"").unwrap();
     // n.b. check for `MOD_DESCRIPTION_LINE` first
     static ref MOD_DESCRIPTION_START: Regex = Regex::new("#description").unwrap();
 
@@ -54,14 +54,8 @@ lazy_static! {
 
     static ref SUMMONING_EFFECTS: HashSet<u64> = {
         let v = vec![
-            1,     21,    31,    43,    50,    54,    62,    89,    93,    119,   126,   130,   137,
-            10001, 10021, 10031, 10043, 10050, 10054, 10062, 10089, 10093, 10119, 10126, 10130, 10137];
-        v.into_iter().collect()
-    };
-
-    // FIXME: for FAR_SUMMONING_EFFECTS spells, also map #farsumcom as well as #damage
-    static ref FAR_SUMMONING_EFFECTS: HashSet<u64> = {
-        let v = vec![37, 38, 10037, 10038];
+            1,     21,    31,    37,    38,    43,    50,    54,    62,    89,    93,    119,   126,   130,   137,
+            10001, 10021, 10031, 10037, 10038, 10043, 10050, 10054, 10062, 10089, 10093, 10119, 10126, 10130, 10137];
         v.into_iter().collect()
     };
 
@@ -78,9 +72,6 @@ pub enum LazyString {
     Thunk(Box<dyn Fn() -> String>)
 }
 
-
-
-
 fn main() {
     // TODO: get this from the user somehow
     let mod_file_paths = vec![
@@ -95,7 +86,8 @@ fn main() {
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Vespika.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Azarien.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/ExtraPretenders1_8.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/SILT_v6.dm",
+        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/SILT_v7.dm",
+        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Chichimeca_v2.dm",
     ];
     // TODO: no real point loading these all into memory
     let mod_files: Vec<(String, Vec<String>)> = mod_file_paths

@@ -1,11 +1,11 @@
 use crate::{LazyString, replace_use};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, BTreeSet};
 use crate::mod_definition::{MappedModDefinition, ModDefinition};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::cell::RefCell;
 use std::rc::Rc;
-use regex::Captures;
+use regex::{Captures, Regex};
 use std::str::FromStr;
 
 pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String, MappedModDefinition> {
@@ -45,7 +45,10 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
     let mut first_available_monster_id = crate::ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
     let mut first_available_name_type_id = crate::ASSUMED_FIRST_NAMETYPE_ID + name_types_implicit_definition_count;
     let mut first_available_spell_id = crate::ASSUMED_FIRST_SPELL_ID + spells_implicit_definition_count;
-    let mut first_available_nations_id = crate::ASSUMED_FIRST_NATION_ID + nations_implicit_definition_count;
+
+    // This has been really annoying let's just add a safety net
+    let mut first_available_nations_id = 20 + crate::ASSUMED_FIRST_NATION_ID + nations_implicit_definition_count;
+
     let mut first_available_montags_id = crate::ASSUMED_FIRST_MONTAG_ID + montags_implicit_definition_count;
     let mut first_available_event_codes_id = crate::ASSUMED_FIRST_EVENTCODE_ID + event_codes_implicit_definition_count;
     let mut first_available_restricted_items_id = crate::ASSUMED_FIRST_RESTRICTED_ITEM_ID + restricted_items_implicit_definition_count;
@@ -54,7 +57,6 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
     let mut first_available_site_id = crate::ASSUMED_FIRST_SITE_ID + sites_implicit_definition_count;
 
     let mut mapped_mods = HashMap::new();
-    println!("first available site id: {}", first_available_site_id);
     for (mod_name, mod_definition) in mod_definitions.into_iter() {
         let mapped_mod = MappedModDefinition {
             weapons: remap_particular_ids(&mut first_available_weapon_id, &mod_definition.weapons.defined_ids),
@@ -79,7 +81,7 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
     mapped_mods
 }
 
-fn remap_particular_ids(first_available_id: &mut u32, mod_definitions: &HashSet<u32>) -> HashMap<u32, u32> {
+fn remap_particular_ids(first_available_id: &mut u32, mod_definitions: &BTreeSet<u32>) -> HashMap<u32, u32> {
     let mut mapped_ids = HashMap::new();
 
     for mod_definition_id in mod_definitions {
@@ -91,7 +93,9 @@ fn remap_particular_ids(first_available_id: &mut u32, mod_definitions: &HashSet<
 
 pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<String, MappedModDefinition>) {
     use LazyString::*;
+
     for (path, mapped_definition) in remapped_ids {
+        println!("Starting to map {}", path);
         let file = File::open(path).unwrap();
         let file_buff = BufReader::new(file);
         let line_iter = file_buff.lines().map(|result| result.unwrap());
@@ -99,7 +103,8 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
         let mut option_current_spell_block_and_damage: Option<(Vec<String>, Rc<RefCell<String>>)> = None;
 
         let mut is_in_description = false;
-        for (ix, line) in line_iter.enumerate() {
+        for line in line_iter {
+
             if is_in_description {
                 if crate::MOD_DESCRIPTION_STOP.is_match(&line) {
                     // End of description, ditch this line and then continue as normal
@@ -159,7 +164,6 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
                                     if found_id > 0 {
                                         // lookup in monsters
                                         if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
-                                            println!("SUMMON MONSTER: replacing {} with {}", found_id, new_id);
                                             let new_string = crate::SPELL_DAMAGE.replace(&b, |ref captures: &Captures| -> String {
                                                 format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
                                             }).to_string();
@@ -169,7 +173,6 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
                                         // lookup in montags. Found_id is negative
                                         if let Some(new_id) = mapped_definition.montags.get(&(-found_id as u32)) {
                                             let new_montag_id = - (*new_id as i32);
-                                            println!("SUMMON MONTAG: replacing -{} with {}", -found_id, new_montag_id);
                                             let new_string = crate::SPELL_DAMAGE.replace(&b, |ref captures: &Captures| -> String {
                                                 format!("{}{}{}", &captures["prefix"], new_montag_id, &captures["suffix"])
                                             }).to_string();
@@ -216,8 +219,10 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
                         &crate::mod_line_scanner::USE_NUMBERED_ARMOUR)
                 ).or_else(|| {
                     if let Some(capture) = crate::mod_line_scanner::USE_MONSTER.captures(&line) {
+
                         let found_id = i32::from_str(capture.name("id").unwrap().as_str()).unwrap();
                         if found_id > 0 {
+
                             if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
                                 let new_line: String = crate::mod_line_scanner::USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
                                     format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
