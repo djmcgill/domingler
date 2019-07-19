@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use regex::{Captures, Regex};
 use std::str::FromStr;
+use crate::mod_line_scanner::ASSUMED_FIRST_MONSTER_ID;
 
 pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String, MappedModDefinition> {
     let mut weapons_implicit_definition_count = 0;
@@ -91,6 +92,162 @@ fn remap_particular_ids(first_available_id: &mut u32, mod_definitions: &BTreeSet
     mapped_ids
 }
 
+// When parsing a spell, we can't know what to map it's #damage line to until
+// we've seen the whole thing. So we keep its lines here (as well as a ref to
+// where we will put the damage line)
+// FIXME: some blocks have multiple #damage lines????
+struct SpellBlock {
+    lines: Vec<String>,
+    eventual_damage_line: Rc<RefCell<Option<String>>>,
+}
+impl SpellBlock {
+    pub fn new() -> Self {
+        Self {
+            lines: Vec::new(),
+            eventual_damage_line: Rc::new(RefCell::new(None)),
+        }
+    }
+
+    // If we find a #damage line, then we don't know what to map it to until later
+    // So we set it to get its value from the ref later.
+    fn process_damage_line(&mut self, line: &str) -> LazyString {
+        {
+            let mut b = self.eventual_damage_line.borrow_mut();
+            *b = Some(line.to_owned());
+        }
+
+        let new_rc = Rc::clone(&self.eventual_damage_line);
+
+        crate::LazyString::Thunk(Box::new(
+            move || {
+                let b = new_rc.borrow();
+                let st: &String = b.as_ref().expect("Tried to map a #damage line but nobody set what to map to");
+                st.clone()
+            }
+        ))
+    }
+    // TODO: we're scanning for damage a few times now
+    fn capture_effect_and_copyspell_and_damage(&self)
+            -> (Option<u64>, Option<String>, Option<i64>) {
+        let mut option_effect = None;
+        let mut option_copyspell_line = None;
+        let mut option_damage = None;
+        for spell_line in self.lines.iter() {
+            if let Some(effect_capture) = crate::SPELL_EFFECT.captures(spell_line) {
+                let found_id = u64::from_str(effect_capture.name("id").unwrap().as_str()).unwrap();
+                option_effect = Some(found_id)
+            } else if crate::SPELL_COPY_ID.is_match(spell_line) {
+                option_copyspell_line = Some(spell_line.clone())
+            } else if crate::SPELL_COPY_NAME.is_match(spell_line) {
+                option_copyspell_line = Some(spell_line.clone())
+            } else if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(spell_line) {
+                let found_id = i64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
+                option_damage = Some(found_id)
+            }
+        }
+
+        (option_effect, option_copyspell_line, option_damage)
+    }
+
+    // Map the damage line, given that it's an effect
+    fn map_enchantment_damage_line(&mut self, mapped_definition: &MappedModDefinition) {
+        let mut b = self.eventual_damage_line.borrow_mut();
+        if let Some(damage_line) = b.as_ref() {
+            if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(damage_line) {
+                let found_id = u64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
+                if let Some(new_id) = mapped_definition.enchantments.get(&(found_id as u32)) {
+                    let new_string = crate::SPELL_DAMAGE.replace(damage_line, |ref captures: &Captures| -> String {
+                        format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                    }).to_string();
+                    *b = Some(new_string);
+                }
+            }
+        }
+
+    }
+
+    fn map_summoning_damage_line(&mut self, mapped_definition: &MappedModDefinition) {
+        // TODO: don't actually need to scan the regex twice
+        let mut b = self.eventual_damage_line.borrow_mut();
+        if let Some(damage_line) = b.as_ref() {
+            if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(damage_line) {
+                let found_id = i64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
+                if found_id > 0 {
+                    // lookup in monsters
+                    if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
+                        let new_string = crate::SPELL_DAMAGE.replace(damage_line, |ref captures: &Captures| -> String {
+                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                        }).to_string();
+                        *b = Some(new_string);
+                    }
+                } else {
+                    // lookup in montags. Found_id is negative
+                    if let Some(new_id) = mapped_definition.montags.get(&(-found_id as u32)) {
+                        let new_montag_id = - (*new_id as i32);
+                        let new_string = crate::SPELL_DAMAGE.replace(damage_line, |ref captures: &Captures| -> String {
+                            format!("{}{}{}", &captures["prefix"], new_montag_id, &captures["suffix"])
+                        }).to_string();
+                        *b = Some(new_string);
+                    }
+                }
+            }
+        }
+    }
+
+    // For each line in a spell, map it, returning true if we reached the end
+    pub fn map_line_until_end(&mut self,
+                              line: &str,
+                              lines: &mut Vec<LazyString>,
+                              mapped_definition: &MappedModDefinition,
+    ) -> bool {
+        self.lines.push(line.to_owned());
+        if crate::SPELL_DAMAGE.is_match(&line) {
+            lines.push(self.process_damage_line(line)); // help we have a #damage and we don't know how to map it yet
+            false
+        } else if crate::END.is_match(&line) {
+            // URGH going to need some lookahead on this
+            let (option_effect, option_copyspell_line, option_damage) =
+                self.capture_effect_and_copyspell_and_damage();
+            if let Some(effect) = option_effect {
+                if crate::ENCHANTMENT_EFFECTS.contains(&effect) {
+                    self.map_enchantment_damage_line(mapped_definition);
+                } else if crate::SUMMONING_EFFECTS.contains(&effect) {
+                    self.map_summoning_damage_line(mapped_definition);
+                }
+            } else {
+                // Do we have a copyspell that's damage matches a monster or ench? TODO: or a montag
+                if let Some(copyspell_line) = option_copyspell_line {
+                    if let Some(damage) = option_damage {
+                        if damage > 0 {
+                            if let Some(new_id) = mapped_definition.monsters.get(&(damage as u32)) {
+                                if (damage as u32) >= ASSUMED_FIRST_MONSTER_ID {
+                                    println!("WARNING! '{}' found for a monster ID \
+                                            which might need to be mapped from {} to {}",
+                                             copyspell_line, damage, new_id);
+                                }
+                            } else if let Some(new_id) = mapped_definition.enchantments.get(&(damage as u32)) {
+                                println!("WARNING! '{}' found for an enchantment ID \
+                                            which might need to be mapped from {} to {}", copyspell_line, damage, new_id);
+                            }
+                        } else {
+                            if let Some(new_id) = mapped_definition.montags.get(&(-damage as u32)) {
+                                println!("WARNING! '{}' found for a montag ID \
+                                            which might need to be mapped from {} to {}",
+                                         copyspell_line, -damage, new_id);
+                            }
+                        }
+                    }
+                }
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+}
+
+
 pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<String, MappedModDefinition>) {
     use LazyString::*;
 
@@ -100,7 +257,7 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
         let file_buff = BufReader::new(file);
         let line_iter = file_buff.lines().map(|result| result.unwrap());
 
-        let mut option_current_spell_block_and_damage: Option<(Vec<String>, Rc<RefCell<String>>)> = None;
+        let mut option_spell_block: Option<SpellBlock> = None;
 
         let mut is_in_description = false;
         for line in line_iter {
@@ -115,87 +272,22 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
                     continue;
                 }
             } else {
+                if let Some(current_spell_block) = &mut option_spell_block {
+                    let is_end_block = current_spell_block.map_line_until_end(&line, lines, &mapped_definition);
+                    if is_end_block {
+                        option_spell_block = None;
 
-                if let Some((current_spell_block, damage_line)) = &mut option_current_spell_block_and_damage {
-                    current_spell_block.push(line.clone());
+                    }
+                    // FIXME: this is real bad but we can't put control flow in `map_line_until_end` soooo
                     if crate::SPELL_DAMAGE.is_match(&line) {
-                        {
-                            let mut b = damage_line.borrow_mut();
-                            *b = line.clone();
-                        }
-
-                        let new_rc = Rc::clone(&damage_line);
-                        lines.push(Thunk(Box::new(
-                            move || {
-                                let b = new_rc.borrow();
-                                let st: &String = &*b;
-                                st.clone()
-                            }
-                        ))); // help we have a #damage and we don't know how to map it yet
                         continue;
-                    } else if crate::END.is_match(&line) {
-                        // URGH going to need some lookahead on this
-                        let mut option_effect = None;
-                        for spell_line in current_spell_block.iter() {
-                            if let Some(effect_capture) = crate::SPELL_EFFECT.captures(spell_line) {
-                                let found_id = u64::from_str(effect_capture.name("id").unwrap().as_str()).unwrap();
-                                option_effect = Some(found_id)
-                            }
-                        }
-                        if let Some(effect) = option_effect {
-
-                            if crate::ENCHANTMENT_EFFECTS.contains(&effect) {
-                                // TODO: don't actually need to scan the regex twice
-                                let mut b = damage_line.borrow_mut();
-                                if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(&b) {
-                                    let found_id = u64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
-                                    if let Some(new_id) = mapped_definition.enchantments.get(&(found_id as u32)) {
-                                        let new_string = crate::SPELL_DAMAGE.replace(&b, |ref captures: &Captures| -> String {
-                                            format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                                        }).to_string();
-                                        *b = new_string;
-                                    }
-                                }
-                            } else if crate::SUMMONING_EFFECTS.contains(&effect) {
-                                // TODO: don't actually need to scan the regex twice
-                                let mut b = damage_line.borrow_mut();
-                                if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(&b) {
-                                    let found_id = i64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
-                                    if found_id > 0 {
-                                        // lookup in monsters
-                                        if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
-                                            let new_string = crate::SPELL_DAMAGE.replace(&b, |ref captures: &Captures| -> String {
-                                                format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                                            }).to_string();
-                                            *b = new_string;
-                                        }
-                                    } else {
-                                        // lookup in montags. Found_id is negative
-                                        if let Some(new_id) = mapped_definition.montags.get(&(-found_id as u32)) {
-                                            let new_montag_id = - (*new_id as i32);
-                                            let new_string = crate::SPELL_DAMAGE.replace(&b, |ref captures: &Captures| -> String {
-                                                format!("{}{}{}", &captures["prefix"], new_montag_id, &captures["suffix"])
-                                            }).to_string();
-                                            *b = new_string;
-                                        }
-                                    }
-
-
-
-                                }
-                            }
-                        }
-
-                        option_current_spell_block_and_damage = None;
                     }
                 } else if crate::SPELL_BLOCK_START.is_match(&line) {
                     // If we find a #newspell or a #selectspell, start recording lines
-                    // TODO: make the string in refcell optional
-                    option_current_spell_block_and_damage = Some((Vec::new(), Rc::new(RefCell::new("#damage whatever".to_owned()))));
+                    option_spell_block = Some(SpellBlock::new());
                 }
             }
 
-            // TODO: also ditch icon and version and domversion
             if crate::MOD_NAME_LINE.is_match(&line) ||
                 crate::MOD_DESCRIPTION_LINE.is_match(&line) ||
                 crate::MOD_ICON_LINE.is_match(&line) ||

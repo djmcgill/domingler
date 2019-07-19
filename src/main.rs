@@ -32,13 +32,23 @@ lazy_static! {
 
     static ref SPELL_EFFECT: Regex = Regex::new("^\
         (?P<prefix>#effect[ ]+)\
-        (?P<id>[[:digit:]]+)\
+        (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_DAMAGE: Regex = Regex::new("^\
         (?P<prefix>#damage[ ]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
+        ").unwrap();
+    static ref SPELL_COPY_ID: Regex = Regex::new("^\
+        (?P<prefix>#copyspell[ ]+)\
+        (?P<id>[-]?[[:digit:]]+)\
+        (?P<suffix>.*)$\
+        ").unwrap();
+    static ref SPELL_COPY_NAME: Regex = Regex::new("^\
+        (?P<prefix>#copyspell[ ]+\")\
+        (?P<id>[^\"]+)\
+        (?P<suffix>\".*)$\
         ").unwrap();
 
     static ref MOD_NAME_LINE: Regex = Regex::new("#modname").unwrap();
