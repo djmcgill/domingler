@@ -31,22 +31,22 @@ lazy_static! {
     static ref SPELL_BLOCK_START: Regex = Regex::new("^#(newspell|selectspell)").unwrap();
 
     static ref SPELL_EFFECT: Regex = Regex::new("^\
-        (?P<prefix>#effect[ ]+)\
+        (?P<prefix>[ \t]*#effect[ ]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_DAMAGE: Regex = Regex::new("^\
-        (?P<prefix>#damage[ ]+)\
+        (?P<prefix>[ \t]*#damage[ ]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_COPY_ID: Regex = Regex::new("^\
-        (?P<prefix>#copyspell[ ]+)\
+        (?P<prefix>[ \t]*#copyspell[ ]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_COPY_NAME: Regex = Regex::new("^\
-        (?P<prefix>#copyspell[ ]+\")\
+        (?P<prefix>[ \t]*#copyspell[ ]+\")\
         (?P<id>[^\"]+)\
         (?P<suffix>\".*)$\
         ").unwrap();
@@ -88,16 +88,14 @@ fn main() {
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Karanaac_v1.26.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Firepower.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/LA_Hollowmoor.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Juhera_Iram.dm",
+        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Juhera_Iram_0.2.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Warhammer-Complete.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/brock.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Myrmecos.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/D5_MA_Drangleic_1.02.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Vespika.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Azarien.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/ExtraPretenders1_8.dm",
         "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/SILT_v7.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Chichimeca_v2.dm",
     ];
     // TODO: no real point loading these all into memory
     let mod_files: Vec<(String, Vec<String>)> = mod_file_paths

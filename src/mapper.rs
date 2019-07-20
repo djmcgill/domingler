@@ -42,8 +42,8 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
     }
 
     let mut first_available_weapon_id = crate::ASSUMED_FIRST_WEAPON_ID + weapons_implicit_definition_count;
-    let mut first_available_armour_id = crate::ASSUMED_FIRST_ARMOUR_ID + armours_implicit_definition_count;
-    let mut first_available_monster_id = crate::ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
+    let mut first_available_armour_id = 31 + crate::ASSUMED_FIRST_ARMOUR_ID + armours_implicit_definition_count;
+    let mut first_available_monster_id = 101 + crate::ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
     let mut first_available_name_type_id = crate::ASSUMED_FIRST_NAMETYPE_ID + name_types_implicit_definition_count;
     let mut first_available_spell_id = crate::ASSUMED_FIRST_SPELL_ID + spells_implicit_definition_count;
 

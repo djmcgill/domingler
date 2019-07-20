@@ -3,9 +3,10 @@ use regex::Regex;
 use std::str::FromStr;
 use lazy_static::lazy_static;
 
+// Domingler does not look for collisions below these IDs
 pub const ASSUMED_FIRST_WEAPON_ID: u32 = 801;
-pub const ASSUMED_FIRST_ARMOUR_ID: u32 = 301;
-pub const ASSUMED_FIRST_MONSTER_ID: u32 = 4001;
+pub const ASSUMED_FIRST_ARMOUR_ID: u32 = 270;
+pub const ASSUMED_FIRST_MONSTER_ID: u32 = 3400;
 pub const ASSUMED_FIRST_NAMETYPE_ID: u32 = 171;
 pub const ASSUMED_FIRST_SPELL_ID: u32 = 1301;
 pub const ASSUMED_FIRST_SITE_ID: u32 = 1501;
@@ -190,102 +191,102 @@ lazy_static! {
 
     // Weapons
     static ref NEW_NUMBERED_WEAPON: Regex = Regex::new("^\
-        (?P<prefix>#newweapon[ ]+)\
+        (?P<prefix>[ \t]*#newweapon[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref NEW_UNNUMBERED_WEAPON: Regex = Regex::new("^\
-        (?P<prefix>#newweapon)\
+        (?P<prefix>[ \t]*#newweapon)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref SELECT_NUMBERED_WEAPON: Regex = Regex::new("^\
-        (?P<prefix>#selectweapon[ ]+)\
+        (?P<prefix>[ \t]*#selectweapon[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_WEAPON: Regex = Regex::new("^\
-        (?P<prefix>(#(?:\
+        (?P<prefix>[ \t]*#(?:\
             newweapon|\
             weapon|\
             copyweapon|\
             secondaryeffect|\
             secondaryeffectalways|\
-            selectweapon)[ ]+))\
+            selectweapon)[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     // Armours
     static ref NEW_NUMBERED_ARMOUR: Regex = Regex::new("^\
-        (?P<prefix>#newarmor[ ]+)\
+        (?P<prefix>[ \t]*#newarmor[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
     static ref NEW_UNNUMBERED_ARMOUR: Regex = Regex::new("^\
-        (?P<prefix>#newarmor)\
+        (?P<prefix>[ \t]*#newarmor)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_ARMOUR: Regex = Regex::new("^\
-        (?P<prefix>(#(?:\
+        (?P<prefix>[ \t]*#(?:\
             newarmor|\
             armor|\
-            copyarmor)[ ]+))\
+            copyarmor)[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref NEW_NAMED_ARMOUR: Regex = Regex::new("^\
-        (?P<prefix>#newarmor[ ]+\")\
+        (?P<prefix>[ \t]*#newarmor[ ]+\")\
         (?P<name>[^\"]+)\
         (?P<suffix>\".*)$\
     ").unwrap();
 
     static ref SELECT_NUMBERED_ARMOUR: Regex = Regex::new("^\
-        (?P<prefix>#selectarmor[ ]+)\
+        (?P<prefix>[ \t]*#selectarmor[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     // Spells
     static ref NEW_UNNUMBERED_SPELL: Regex = Regex::new("^\
-        (?P<prefix>#newspell)\
+        (?P<prefix>[ \t]*#newspell)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref SELECT_NUMBERED_SPELL: Regex = Regex::new("^\
-        (?P<prefix>#selectspell[ ]+)\
+        (?P<prefix>[ \t]*#selectspell[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_SPELL: Regex = Regex::new("^\
-        (?P<prefix>(#(?:\
+        (?P<prefix>[ \t]*#(?:\
             selectspell|\
             copyspell|\
             nextspell\
-        )[ ]+))\
+        )[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     // Items
     static ref NEW_UNNUMBERED_ITEM: Regex = Regex::new("^\
-        (?P<prefix>#newitem)\
+        (?P<prefix>[ \t]*#newitem)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref SELECT_NUMBERED_ITEM: Regex = Regex::new("^\
-        (?P<prefix>#selectitem[ ]+)\
+        (?P<prefix>[ \t]*#selectitem[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_ITEM: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             selectitem|\
             startitem|\
             copyitem|\
@@ -299,25 +300,25 @@ lazy_static! {
 
     // Sites
     static ref NEW_NUMBERED_SITE: Regex = Regex::new("^\
-        (?P<prefix>#newsite[ ]+)\
+        (?P<prefix>[ \t]*#newsite[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref SELECT_NUMBERED_SITE: Regex = Regex::new("^\
-        (?P<prefix>#selectsite[ ]+)\
+        (?P<prefix>[ \t]*#selectsite[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     // remember to check for numbered sites first
     static ref NEW_UNNUMBERED_SITE: Regex = Regex::new("^\
-        (?P<prefix>#newsite)\
+        (?P<prefix>[ \t]*#newsite)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_SITE: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             selectsite|\
             newsite|\
             req_nositenbr|\
@@ -331,13 +332,13 @@ lazy_static! {
 
     // Monsters
     static ref NEW_NUMBERED_MONSTER: Regex = Regex::new("^\
-        (?P<prefix>#newmonster[ ]+)\
+        (?P<prefix>[ \t]*#newmonster[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref SELECT_NUMBERED_MONSTER: Regex = Regex::new("^\
-        (?P<prefix>#selectmonster[ ]+)\
+        (?P<prefix>[ \t]*#selectmonster[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
@@ -345,12 +346,12 @@ lazy_static! {
     // "#newmonster", or "#newmonster -- whatever"
     // n.b. make sure to check it doesn't match the numbered (or named) monster first!
     static ref NEW_UNNUMBERED_MONSTER: Regex = Regex::new("^\
-        (?P<prefix>#newmonster)\
+        (?P<prefix>[ \t]*#newmonster)\
         (?P<suffix>.*)$\
     ").unwrap();
-
+    // TODO: optimise regex e.g. matching `[[:digit:]]+d6`
     pub static ref USE_MONSTER: Regex = Regex::new("^\
-        (?P<prefix>(#(?:\
+        (?P<prefix>[ \t]*#(?:\
             newmonster|\
             copyspr|\
             monpresentrec|\
@@ -506,28 +507,49 @@ lazy_static! {
             2com|\
             4com|\
             5com|\
+            1unit|\
+            1d3units|\
+            2d3units|\
+            3d3units|\
+            4d3units|\
+            1d6units|\
+            2d6units|\
+            3d6units|\
+            4d6units|\
+            5d6units|\
+            6d7units|\
+            7d6units|\
+            8d6units|\
+            9d6units|\
+            10d6units|\
+            11d6units|\
+            12d6units|\
+            13d6units|\
+            14d6units|\
+            15d6units|\
+            16d6units|\
             killmon|\
             kill2d6mon|\
             killcom|\
-            copystats)[ ]+))\
+            copystats)[ ]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     // Nations
     pub static ref SELECT_NUMBERED_NATION: Regex = Regex::new("^\
-        (?P<prefix>#selectnation[ ]+)\
+        (?P<prefix>[ \t]*#selectnation[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     static ref NEW_UNNUMBERED_NATION: Regex = Regex::new("^\
-        (?P<prefix>#newnation)\
+        (?P<prefix>[ \t]*#newnation)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_NATION: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             selectnation|\
             nation|\
             restricted|\
@@ -551,13 +573,13 @@ lazy_static! {
 
     // Name types
     static ref SELECT_NUMBERED_NAMETYPE: Regex = Regex::new("^\
-        (?P<prefix>#selectnametype[ ]+)\
+        (?P<prefix>[ \t]*#selectnametype[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NAMETYPE: Regex = Regex::new("^\
-    (?P<prefix>#(?:\
+    (?P<prefix>[ \t]*#(?:\
         nametype|\
         selectnametype\
     )[ ]+)\
@@ -567,26 +589,26 @@ lazy_static! {
 
     // Montags
     static ref SELECT_NUMBERED_MONTAG: Regex = Regex::new("^\
-        (?P<prefix>#montag[ ]+)\
+        (?P<prefix>[ \t]*#montag[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_MONTAG: Regex = Regex::new("^\
-        (?P<prefix>#montag[ ]+)\
+        (?P<prefix>[ \t]*#montag[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     // Other
     static ref SELECT_NUMBERED_EVENTCODE: Regex = Regex::new("^\
-        (?P<prefix>#(?:code|code2)[ ]+-)\
+        (?P<prefix>[ \t]*#(?:code|code2)[ ]+-)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_EVENTCODE: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             code|\
             code2|\
             resetcode|\
@@ -601,13 +623,13 @@ lazy_static! {
     ").unwrap();
 
     static ref SELECT_NUMBERED_RESTRICTED_ITEM: Regex = Regex::new("^\
-        (?P<prefix>#restricteditem[ ]+)\
+        (?P<prefix>[ \t]*#restricteditem[ ]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
 
     pub static ref USE_NUMBERED_RESTRICTED_ITEM: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             restricteditem|\
             userestricteditem\
         )[ ]+)\
@@ -617,7 +639,7 @@ lazy_static! {
 
     // n.b. this does not remap inside spells
     pub static ref USE_GLOBAL_ENCHANTMENT: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             enchrebate50|\
             req_noench|\
             req_ench|\
@@ -632,7 +654,7 @@ lazy_static! {
     ").unwrap();
 
     pub static ref USE_GLOBAL_ENCHANTMENT_DAMAGE: Regex = Regex::new("^\
-        (?P<prefix>#(?:\
+        (?P<prefix>[ \t]*#(?:\
             damage\
         )[ ]+)\
         (?P<id>[[:digit:]]+)\
