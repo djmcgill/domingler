@@ -143,7 +143,13 @@ fn main() {
                 match result {
                     Ok(x) => x,
                     Err(e) => {
-                        panic!("Mod '{}' was not valid UTF-8 and domingler cannot read it until its encoding is changed", path);
+                        println!("Mod '{}' was not valid UTF-8 and domingler cannot read it until its encoding is changed.", path);
+                        println!("Press any key to quit...");
+                        {
+                            let stdin = std::io::stdin();
+                            let _ = stdin.lock().lines().next().unwrap().unwrap();
+                        }
+                        panic!("Mod '{}' was not valid UTF-8 and domingler cannot read it until its encoding is changed.", path);
                     }
                 }
             });
