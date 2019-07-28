@@ -13,3 +13,8 @@ mingle them together and remap IDs as needed.
 - proper way to give inputs etc
 - check limits
 - there's a bunch of FIXMEs
+
+### Usage:
+Put executable in the same fold as some .dm files. It could be your dominions mods folder, it could be a different one. Run it.
+
+Now you have a `domingler.dm` mod and can 1) edit to change name, description, icon etc and 2) package it with the sprite folders from its constituent mods.
