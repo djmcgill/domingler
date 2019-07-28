@@ -134,27 +134,19 @@ fn main() {
         let _ = stdin.lock().lines().next().unwrap().unwrap();
     }
 
-//    let mod_file_paths = vec![
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Karanaac_v1.26.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Firepower.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/LA_Hollowmoor.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Juhera_Iram_0.2.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Warhammer-Complete.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Myrmecos.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/D5_MA_Drangleic_1.02.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Vespika.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Azarien.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/ExtraPretenders1_8.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/SILT_v7.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/centipedes.dm",
-//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/clowns.dm",
-//    ];
     // TODO: no real point loading these all into memory
     let mod_files: Vec<(String, Vec<String>)> = mod_file_paths.iter()
         .map(|path| {
             let file = File::open(path).unwrap();
             let file_buff = BufReader::new(file);
-            let line_iter = file_buff.lines().map(|result| result.unwrap());
+            let line_iter = file_buff.lines().map(|result| {
+                match result {
+                    Ok(x) => x,
+                    Err(e) => {
+                        panic!("Mod '{}' was not valid UTF-8 and domingler cannot read it until its encoding is changed", path);
+                    }
+                }
+            });
             let lines: Vec<String> = line_iter.collect();
             (path.to_owned(), lines)
         })
