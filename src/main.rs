@@ -19,7 +19,7 @@ use mod_definition::*;
 lazy_static! {
     static ref MOD_NAME: Regex = Regex::new(
         "^\
-         (?P<prefix>#modname[ ]+\")\
+         (?P<prefix>#modname[ \t]+\")\
          (?P<name>[^\"]+)\
          (?P<suffix>\".*)$\
          "
@@ -31,22 +31,22 @@ lazy_static! {
     static ref SPELL_BLOCK_START: Regex = Regex::new("^#(newspell|selectspell)").unwrap();
 
     static ref SPELL_EFFECT: Regex = Regex::new("^\
-        (?P<prefix>[ \t]*#effect[ ]+)\
+        (?P<prefix>[ \t]*#effect[ \t]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_DAMAGE: Regex = Regex::new("^\
-        (?P<prefix>[ \t]*#damage[ ]+)\
+        (?P<prefix>[ \t]*#damage[ \t]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_COPY_ID: Regex = Regex::new("^\
-        (?P<prefix>[ \t]*#copyspell[ ]+)\
+        (?P<prefix>[ \t]*#copyspell[ \t]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
         ").unwrap();
     static ref SPELL_COPY_NAME: Regex = Regex::new("^\
-        (?P<prefix>[ \t]*#copyspell[ ]+\")\
+        (?P<prefix>[ \t]*#copyspell[ \t]+\")\
         (?P<id>[^\"]+)\
         (?P<suffix>\".*)$\
         ").unwrap();
@@ -55,7 +55,7 @@ lazy_static! {
     static ref MOD_ICON_LINE: Regex = Regex::new("#icon").unwrap();
     static ref MOD_VERSION_LINE: Regex = Regex::new("#version").unwrap();
     static ref MOD_DOMVERSION_LINE: Regex = Regex::new("#domversion").unwrap();
-    static ref MOD_DESCRIPTION_LINE: Regex = Regex::new("#description[ ]+\"[^\"]*\"").unwrap();
+    static ref MOD_DESCRIPTION_LINE: Regex = Regex::new("#description[ \t]+\"[^\"]*\"").unwrap();
     // n.b. check for `MOD_DESCRIPTION_LINE` first
     static ref MOD_DESCRIPTION_START: Regex = Regex::new("#description").unwrap();
 
@@ -83,23 +83,74 @@ pub enum LazyString {
 }
 
 fn main() {
-    // TODO: get this from the user somehow
-    let mod_file_paths = vec![
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Karanaac_v1.26.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Firepower.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/LA_Hollowmoor.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Juhera_Iram_0.2.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Warhammer-Complete.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Myrmecos.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/D5_MA_Drangleic_1.02.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Vespika.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Azarien.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/ExtraPretenders1_8.dm",
-        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/SILT_v7.dm",
-    ];
+    println!(r#"
+        ___  ___         _____    __  ___   __    __  __
+       /   \/___\/\/\    \_   \/\ \ \/ _ \ / /   /__\/__\
+      / /\ //  //    \    / /\/  \/ / /_\// /   /_\ / \//
+     / /_// \_// /\/\ \/\/ /_/ /\  / /_\\/ /___//__/ _  \
+    /___,'\___/\/    \/\____/\_\ \/\____/\____/\__/\/ \_/
+
+    Domingler will scan the folder you put it in.
+    This probably needs to be your dominions mods folder
+    which can be opened from ingame via Tools & Manuals.
+    However you can also make a specific folder containing
+    only the mods that you want to mingle.
+
+    Press [enter] to continue..."#);
+    {
+        let stdin = std::io::stdin();
+        let _ = stdin.lock().lines().next().unwrap().unwrap();
+    }
+
+    let mut mod_file_paths: Vec<String> = vec![];
+    let current_dir_contents = std::fs::read_dir(".").unwrap();
+    for result_current_dir_item in current_dir_contents {
+        if let Ok(current_dir_item) = result_current_dir_item {
+            let file_name = current_dir_item.file_name();
+            let file_path: &std::path::Path = file_name.as_ref();
+            if let Some(extension) = file_path.extension() {
+                if extension == "dm" {
+                    if let Some(file_name) = file_path.file_stem() {
+                        if file_name != "domingler" {
+                            mod_file_paths.push(file_path.to_str().unwrap().to_owned());
+                        } else {
+                            println!("Ignoring domingler.dm");
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    println!("Found files:");
+    for mod_file_path in &mod_file_paths {
+        println!(" - {}", mod_file_path);
+    }
+    println!();
+    println!("Press [enter] to parse files...");
+    {
+        let stdin = std::io::stdin();
+        let _ = stdin.lock().lines().next().unwrap().unwrap();
+    }
+
+//    let mod_file_paths = vec![
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Karanaac_v1.26.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Firepower.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/LA_Hollowmoor.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Juhera_Iram_0.2.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Warhammer-Complete.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Myrmecos.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/D5_MA_Drangleic_1.02.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/Vespika.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/EA_Azarien.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/ExtraPretenders1_8.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/SILT_v7.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/centipedes.dm",
+//        "/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/clowns.dm",
+//    ];
     // TODO: no real point loading these all into memory
-    let mod_files: Vec<(String, Vec<String>)> = mod_file_paths
-        .into_iter()
+    let mod_files: Vec<(String, Vec<String>)> = mod_file_paths.iter()
         .map(|path| {
             let file = File::open(path).unwrap();
             let file_buff = BufReader::new(file);
@@ -111,25 +162,40 @@ fn main() {
     let parsed_mods = scanner::scan_all_mods(&mod_files);
     scanner::print_mod_id_usages(&parsed_mods);
 
+    println!("Press [enter] to generate domingler.dm out of the scanned mods...");
+    {
+        let stdin = std::io::stdin();
+        let _ = stdin.lock().lines().next().unwrap().unwrap();
+    }
+
     let remapped_ids = mapper::remap_ids(&parsed_mods);
 
     // TODO: add the mod names to the description
     let mut lines: Vec<LazyString> = vec![
-        LazyString::S("#modname \"domingler mod test\"".to_owned()),
+        LazyString::S("#modname \"domingler mod\"".to_owned()),
         LazyString::S(format!("#description \"a combination of: some shit or whatever\"")),
     ];
 
     // TODO: pick an era and then also map all nations to same era?
     mapper::apply_remapped_ids(&mut lines, &remapped_ids);
 
-
-    let new_file = File::create("/mnt/c/Users/David/AppData/Roaming/Dominions5/mods/domingler-test.dm").unwrap();
+    let new_file = File::create("./domingler.dm").unwrap();
     let mut writer = BufWriter::new(new_file);
     for line in lines {
         match line {
             LazyString::S(line_string) => write!(&mut writer, "{}\n", line_string).unwrap(),
             LazyString::Thunk(line_fn) => write!(&mut writer, "{}\n", line_fn()).unwrap(),
         }
+    }
+    println!();
+    println!("Successfully created domingler.dm!");
+    println!("If you got warnings about copyspell above, you will need");
+    println!("to manually edit those lines. You may also want to edit");
+    println!("the nation's eras to be the same.");
+    println!("Press [enter] to exit.");
+    {
+        let stdin = std::io::stdin();
+        let _ = stdin.lock().lines().next().unwrap().unwrap();
     }
 }
 

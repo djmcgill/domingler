@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, BTreeSet};
+use std::collections::{HashMap, BTreeSet};
 use crate::mod_definition::ModDefinition;
 use std::str::FromStr;
 

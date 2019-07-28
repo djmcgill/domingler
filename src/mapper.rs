@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::cell::RefCell;
 use std::rc::Rc;
-use regex::{Captures, Regex};
+use regex::Captures;
 use std::str::FromStr;
 use crate::mod_line_scanner::ASSUMED_FIRST_MONSTER_ID;
 
@@ -43,7 +43,9 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
 
     let mut first_available_weapon_id = crate::ASSUMED_FIRST_WEAPON_ID + weapons_implicit_definition_count;
     let mut first_available_armour_id = 31 + crate::ASSUMED_FIRST_ARMOUR_ID + armours_implicit_definition_count;
-    let mut first_available_monster_id = 101 + crate::ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
+    let mut first_available_monster_id = 105 + crate::ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
+    println!("first available monster ID: {}", first_available_monster_id);
+
     let mut first_available_name_type_id = crate::ASSUMED_FIRST_NAMETYPE_ID + name_types_implicit_definition_count;
     let mut first_available_spell_id = crate::ASSUMED_FIRST_SPELL_ID + spells_implicit_definition_count;
 
@@ -222,17 +224,17 @@ impl SpellBlock {
                             if let Some(new_id) = mapped_definition.monsters.get(&(damage as u32)) {
                                 if (damage as u32) >= ASSUMED_FIRST_MONSTER_ID {
                                     println!("WARNING! '{}' found for a monster ID \
-                                            which might need to be mapped from {} to {}",
+                                            which might need to be manually mapped from {} to {}",
                                              copyspell_line, damage, new_id);
                                 }
                             } else if let Some(new_id) = mapped_definition.enchantments.get(&(damage as u32)) {
                                 println!("WARNING! '{}' found for an enchantment ID \
-                                            which might need to be mapped from {} to {}", copyspell_line, damage, new_id);
+                                            which might need to be manually mapped from {} to {}", copyspell_line, damage, new_id);
                             }
                         } else {
                             if let Some(new_id) = mapped_definition.montags.get(&(-damage as u32)) {
                                 println!("WARNING! '{}' found for a montag ID \
-                                            which might need to be mapped from {} to {}",
+                                            which might need to be manually mapped from {} to {}",
                                          copyspell_line, -damage, new_id);
                             }
                         }
@@ -252,7 +254,6 @@ pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<St
     use LazyString::*;
 
     for (path, mapped_definition) in remapped_ids {
-        println!("Starting to map {}", path);
         let file = File::open(path).unwrap();
         let file_buff = BufReader::new(file);
         let line_iter = file_buff.lines().map(|result| result.unwrap());
