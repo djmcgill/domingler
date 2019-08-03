@@ -55,7 +55,7 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
     let mut first_available_montags_id = crate::ASSUMED_FIRST_MONTAG_ID + montags_implicit_definition_count;
     let mut first_available_event_codes_id = crate::ASSUMED_FIRST_EVENTCODE_ID + event_codes_implicit_definition_count;
     let mut first_available_restricted_items_id = crate::ASSUMED_FIRST_RESTRICTED_ITEM_ID + restricted_items_implicit_definition_count;
-    let mut first_available_enchantment_id = 0; // FIXME: should this be zero?
+    let mut first_available_enchantment_id = 150;
     let mut first_available_item_id = crate::ASSUMED_FIRST_ITEM_ID + items_implicit_definition_count;
     let mut first_available_site_id = crate::ASSUMED_FIRST_SITE_ID + sites_implicit_definition_count;
 
@@ -97,7 +97,6 @@ fn remap_particular_ids(first_available_id: &mut u32, mod_definitions: &BTreeSet
 // When parsing a spell, we can't know what to map it's #damage line to until
 // we've seen the whole thing. So we keep its lines here (as well as a ref to
 // where we will put the damage line)
-// FIXME: some blocks have multiple #damage lines????
 struct SpellBlock {
     lines: Vec<String>,
     eventual_damage_line: Rc<RefCell<Option<String>>>,
