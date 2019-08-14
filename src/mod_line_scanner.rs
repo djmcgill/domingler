@@ -38,11 +38,17 @@ impl ModLineScanner {
         if let Some(new_numbered_regex) = self.option_new_numbered_regex {
             if let Some(capture) = new_numbered_regex.captures(line) {
                 let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                let not_already_there = thing_definition.defined_ids.insert(found_id);
-                if !not_already_there {
-                    println!("WARNING: ID in {} was already declared by somebody else", line);
+                if found_id == 0 {
+                    // New ID of 0 is treated the same as no number
+                    thing_definition.implicit_definitions += 1;
+                    return true;
+                } else {
+                    let not_already_there = thing_definition.defined_ids.insert(found_id);
+                    if !not_already_there {
+                        println!("WARNING: ID in {} was already declared in the same mod", line);
+                    }
+                    return true;
                 }
-                return true;
             }
         }
         if let Some(select_numbered_regex) = self.option_select_numbered_regex {
@@ -374,6 +380,7 @@ lazy_static! {
             watershape|\
             domsummon|\
             domsummon2|\
+            domsummon20|\
             raredomsummon|\
             templetrainer|\
             makemonsters1|\

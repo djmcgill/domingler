@@ -8,6 +8,28 @@ use std::rc::Rc;
 use regex::Captures;
 use std::str::FromStr;
 use crate::mod_line_scanner::ASSUMED_FIRST_MONSTER_ID;
+use lazy_static::lazy_static;
+use maplit::btreeset;
+
+lazy_static! {
+    static ref KNOWN_SUMMON_COPYSPELL_IDS: BTreeSet<u32> = {
+        btreeset![805, 818, 875, 893, 920]
+    };
+
+    static ref KNOWN_SUMMON_COPYSPELL_NAMES: BTreeSet<String> = {
+        btreeset![
+            "animate skeleton".to_owned(),
+            "horde of skeletons".to_owned(),
+            "raise skeletons".to_owned(),
+            "reanimation".to_owned(),
+            "pale riders".to_owned(),
+            "revive lictor".to_owned(),
+            "living mercury".to_owned(),
+            "king of elemental earth".to_owned(),
+            "summon fire elemental".to_owned(),
+        ]
+    };
+}
 
 pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<String, MappedModDefinition> {
     let mut weapons_implicit_definition_count = 0;
@@ -216,9 +238,15 @@ impl SpellBlock {
                     self.map_summoning_damage_line(mapped_definition);
                 }
             } else {
-                // Do we have a copyspell that's damage matches a monster or ench? TODO: or a montag
+                // Do we have a copyspell?
                 if let Some(copyspell_line) = option_copyspell_line {
-                    if let Some(damage) = option_damage {
+                    // We know it's a summon spell
+                    if is_known_summoning_spell(&copyspell_line) {
+//                        println!("{} is a known copyspell line", copyspell_line);
+                        self.map_summoning_damage_line(mapped_definition);
+                    } else if let Some(damage) = option_damage {
+                        // does the damage matche a monster, montag, or ench?
+//                        println!("{} is NOT a known copyspell line", copyspell_line);
                         if damage > 0 {
                             if let Some(new_id) = mapped_definition.monsters.get(&(damage as u32)) {
                                 if (damage as u32) >= ASSUMED_FIRST_MONSTER_ID {
@@ -248,6 +276,19 @@ impl SpellBlock {
 
 }
 
+fn is_known_summoning_spell(copyspell: &String) -> bool {
+    if let Some(name_capture) = crate::SPELL_COPY_NAME.captures(copyspell) {
+//        println!("copyspell name {:?}", name_capture);
+        let found_name = name_capture.name("id").unwrap().as_str();
+        KNOWN_SUMMON_COPYSPELL_NAMES.contains(&found_name.to_lowercase())
+    } else if let Some(id_capture) = crate::SPELL_COPY_ID.captures(copyspell) {
+//        println!("copyspell id {:?}", id_capture);
+        let found_id = u32::from_str(id_capture.name("id").unwrap().as_str()).unwrap();
+        KNOWN_SUMMON_COPYSPELL_IDS.contains(&found_id)
+    } else {
+        false
+    }
+}
 
 pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<String, MappedModDefinition>) {
     use LazyString::*;
