@@ -35,39 +35,39 @@ impl ModLineScanner {
     pub fn scan_line<'a>(&self,
                          line: &'a str,
                          thing_definition: &mut Definition<'a>) -> bool {
-        if let Some(new_numbered_regex) = self.option_new_numbered_regex {
-            if let Some(capture) = new_numbered_regex.captures(line) {
-                let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                if found_id == 0 {
-                    // New ID of 0 is treated the same as no number
-                    thing_definition.implicit_definitions += 1;
-                    return true;
-                } else {
-                    let not_already_there = thing_definition.defined_ids.insert(found_id);
-                    if !not_already_there {
-                        println!("WARNING: ID in {} was already declared in the same mod", line);
-                    }
-                    return true;
-                }
-            }
-        }
-        if let Some(select_numbered_regex) = self.option_select_numbered_regex {
-            if let Some(capture) = select_numbered_regex.captures(line) {
-                let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                if found_id >= self.assumed_minimum {
-                    thing_definition.defined_ids.insert(found_id);
-                } else {
-                    thing_definition.vanilla_edited_ids.insert(found_id);
-                }
-                return true;
-            }
-        }
-        if let Some(new_unnumbered_regex) = self.option_new_unnumbered_regex {
-            if new_unnumbered_regex.is_match(line) {
-                thing_definition.implicit_definitions += 1;
-                return true;
-            }
-        }
+//        if let Some(new_numbered_regex) = self.option_new_numbered_regex {
+//            if let Some(capture) = new_numbered_regex.captures(line) {
+//                let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+//                if found_id == 0 {
+//                    // New ID of 0 is treated the same as no number
+//                    thing_definition.implicit_definitions += 1;
+//                    return true;
+//                } else {
+//                    let not_already_there = thing_definition.defined_ids.insert(found_id);
+//                    if !not_already_there {
+//                        println!("WARNING: ID in {} was already declared in the same mod", line);
+//                    }
+//                    return true;
+//                }
+//            }
+//        }
+//        if let Some(select_numbered_regex) = self.option_select_numbered_regex {
+//            if let Some(capture) = select_numbered_regex.captures(line) {
+//                let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+//                if found_id >= self.assumed_minimum {
+//                    thing_definition.defined_ids.insert(found_id);
+//                } else {
+//                    thing_definition.vanilla_edited_ids.insert(found_id);
+//                }
+//                return true;
+//            }
+//        }
+//        if let Some(new_unnumbered_regex) = self.option_new_unnumbered_regex {
+//            if new_unnumbered_regex.is_match(line) {
+//                thing_definition.implicit_definitions += 1;
+//                return true;
+//            }
+//        }
         false
     }
 }

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeSet};
+use std::collections::{HashMap, BTreeSet, BTreeMap};
 use crate::mod_definition::ModDefinition;
 use std::str::FromStr;
 
@@ -81,24 +81,24 @@ fn parse_spell_block(block: &Vec<&str>, mod_enchantments: &mut BTreeSet<u32>) {
 pub fn print_mod_id_usages(hash_map: &HashMap<String, ModDefinition>) {
     for (name, definition) in hash_map {
         println!("Mod: {}", name);
-        print_min_max("Weapons", &definition.weapons.defined_ids);
-        print_min_max("Armour", &definition.armours.defined_ids);
-        print_min_max("Spells", &definition.spells.defined_ids);
-        print_min_max("Monsters", &definition.monsters.defined_ids);
-        print_min_max("Items", &definition.items.defined_ids);
-        print_min_max("Sites", &definition.sites.defined_ids);
-        print_list("Nations", &definition.nations.defined_ids);
-        print_list("Nametypes", &definition.name_types.defined_ids);
-        print_list("Montags", &definition.montags.defined_ids);
-        print_list("Event codes", &definition.event_codes.defined_ids);
-        print_list("Restricted items", &definition.restricted_items.defined_ids);
-        print_list("Enchantments", &definition.enchantments);
+        print_min_max("Weapons", &definition.weapons.explicit_definitions);
+        print_min_max("Armour", &definition.armours.explicit_definitions);
+        print_min_max("Spells", &definition.spells.explicit_definitions);
+        print_min_max("Monsters", &definition.monsters.explicit_definitions);
+        print_min_max("Items", &definition.items.explicit_definitions);
+        print_min_max("Sites", &definition.sites.explicit_definitions);
+        print_list("Nations", definition.nations.explicit_definitions.keys().cloned());
+        print_list("Nametypes", definition.name_types.explicit_definitions.keys().cloned());
+        print_list("Montags", definition.montags.explicit_definitions.keys().cloned());
+        print_list("Event codes", definition.event_codes.explicit_definitions.keys().cloned());
+        print_list("Restricted items", definition.restricted_items.explicit_definitions.keys().cloned());
+        print_list("Enchantments", definition.enchantments.iter().cloned());
         println!();
     }
 }
 
-fn print_list(name: &str, items: &BTreeSet<u32>) {
-    let mut items: Vec<u32> = items.iter().cloned().collect();
+fn print_list(name: &str, items: impl Iterator<Item=u32>) {
+    let mut items: Vec<u32> = items.collect();
     items.sort_unstable();
     match items.len() {
         0 => {}
@@ -113,8 +113,8 @@ fn print_list(name: &str, items: &BTreeSet<u32>) {
     }
 }
 
-fn print_min_max(name: &str, items: &BTreeSet<u32>) {
-    match min_max(items.iter()) {
+fn print_min_max<A>(name: &str, items: &BTreeMap<u32, A>) {
+    match min_max(items.keys()) {
         None => {}
         Some((min, None)) => {
             println!(" - {}: {}", name, min);

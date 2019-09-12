@@ -13,7 +13,7 @@ use maplit::btreeset;
 
 lazy_static! {
     static ref KNOWN_SUMMON_COPYSPELL_IDS: BTreeSet<u32> = {
-        btreeset![805, 818, 875, 893, 920]
+        btreeset![724, 805, 813, 818, 875, 893, 920, 1091]
     };
 
     static ref KNOWN_SUMMON_COPYSPELL_NAMES: BTreeSet<String> = {
@@ -27,6 +27,9 @@ lazy_static! {
             "living mercury".to_owned(),
             "king of elemental earth".to_owned(),
             "summon fire elemental".to_owned(),
+            "pack of wolves".to_owned(),
+            "contact forest giant".to_owned(),
+            "infernal disease".to_owned(),
         ]
     };
 }
@@ -48,19 +51,19 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
     let mut enchantments_implicit_definition_count = 0;
 
     for mod_definition in mod_definitions.values() {
-        weapons_implicit_definition_count += mod_definition.weapons.implicit_definitions;
-        armours_implicit_definition_count += mod_definition.armours.implicit_definitions;
-        monsters_implicit_definition_count += mod_definition.monsters.implicit_definitions;
-        name_types_implicit_definition_count += mod_definition.name_types.implicit_definitions;
-        spells_implicit_definition_count += mod_definition.spells.implicit_definitions;
-        nations_implicit_definition_count += mod_definition.nations.implicit_definitions;
-//        events_implicit_definition_count += mod_definition.events.implicit_definitions;
-        poptype_implicit_definition_count += mod_definition.poptype.implicit_definitions;
-        montags_implicit_definition_count += mod_definition.montags.implicit_definitions;
-        event_codes_implicit_definition_count += mod_definition.event_codes.implicit_definitions;
-        restricted_items_implicit_definition_count += mod_definition.restricted_items.implicit_definitions;
-        items_implicit_definition_count += mod_definition.items.implicit_definitions;
-        sites_implicit_definition_count += mod_definition.sites.implicit_definitions;
+        weapons_implicit_definition_count += mod_definition.weapons.implicit_definitions.len() as u32;
+        armours_implicit_definition_count += mod_definition.armours.implicit_definitions.len() as u32;
+        monsters_implicit_definition_count += mod_definition.monsters.implicit_definitions.len() as u32;
+        name_types_implicit_definition_count += mod_definition.name_types.implicit_definitions.len() as u32;
+        spells_implicit_definition_count += mod_definition.spells.implicit_definitions.len() as u32;
+        nations_implicit_definition_count += mod_definition.nations.implicit_definitions.len() as u32;
+//        events_implicit_definition_count += mod_definition.events.implicit_definitions.len() as u32;
+        poptype_implicit_definition_count += mod_definition.poptype.implicit_definitions.len() as u32;
+        montags_implicit_definition_count += mod_definition.montags.implicit_definitions.len() as u32;
+        event_codes_implicit_definition_count += mod_definition.event_codes.implicit_definitions.len() as u32;
+        restricted_items_implicit_definition_count += mod_definition.restricted_items.implicit_definitions.len() as u32;
+        items_implicit_definition_count += mod_definition.items.implicit_definitions.len() as u32;
+        sites_implicit_definition_count += mod_definition.sites.implicit_definitions.len() as u32;
     }
 
     let mut first_available_weapon_id = crate::ASSUMED_FIRST_WEAPON_ID + weapons_implicit_definition_count;
@@ -83,24 +86,24 @@ pub fn remap_ids(mod_definitions: &HashMap<String, ModDefinition>) -> HashMap<St
 
     let mut mapped_mods = HashMap::new();
     for (mod_name, mod_definition) in mod_definitions.into_iter() {
-        let mapped_mod = MappedModDefinition {
-            weapons: remap_particular_ids(&mut first_available_weapon_id, &mod_definition.weapons.defined_ids),
-            armours: remap_particular_ids(&mut first_available_armour_id, &mod_definition.armours.defined_ids),
-            monsters: remap_particular_ids(&mut first_available_monster_id, &mod_definition.monsters.defined_ids),
-            name_types: remap_particular_ids(&mut first_available_name_type_id, &mod_definition.name_types.defined_ids),
-            spells: remap_particular_ids(&mut first_available_spell_id, &mod_definition.spells.defined_ids),
-            nations: remap_particular_ids(&mut first_available_nations_id, &mod_definition.nations.defined_ids),
-            montags: remap_particular_ids(&mut first_available_montags_id, &mod_definition.montags.defined_ids),
-            event_codes: remap_particular_ids(&mut first_available_event_codes_id, &mod_definition.event_codes.defined_ids),
-            restricted_items: remap_particular_ids(&mut first_available_restricted_items_id, &mod_definition.restricted_items.defined_ids),
-            enchantments: remap_particular_ids(&mut first_available_enchantment_id, &mod_definition.enchantments),
-            items: remap_particular_ids(&mut first_available_item_id, &mod_definition.items.defined_ids),
-            sites: remap_particular_ids(&mut first_available_site_id, &mod_definition.sites.defined_ids),
-//            poptype: unimplemented!(), FIXME: is this an issue or not?
-        };
-
-        // Clone doesn't seem to be needed if we consume self
-        mapped_mods.insert(mod_name.clone(), mapped_mod);
+//        let mapped_mod = MappedModDefinition {
+//            weapons: remap_particular_ids(&mut first_available_weapon_id, &mod_definition.weapons.defined_ids),
+//            armours: remap_particular_ids(&mut first_available_armour_id, &mod_definition.armours.defined_ids),
+//            monsters: remap_particular_ids(&mut first_available_monster_id, &mod_definition.monsters.defined_ids),
+//            name_types: remap_particular_ids(&mut first_available_name_type_id, &mod_definition.name_types.defined_ids),
+//            spells: remap_particular_ids(&mut first_available_spell_id, &mod_definition.spells.defined_ids),
+//            nations: remap_particular_ids(&mut first_available_nations_id, &mod_definition.nations.defined_ids),
+//            montags: remap_particular_ids(&mut first_available_montags_id, &mod_definition.montags.defined_ids),
+//            event_codes: remap_particular_ids(&mut first_available_event_codes_id, &mod_definition.event_codes.defined_ids),
+//            restricted_items: remap_particular_ids(&mut first_available_restricted_items_id, &mod_definition.restricted_items.defined_ids),
+//            enchantments: remap_particular_ids(&mut first_available_enchantment_id, &mod_definition.enchantments),
+//            items: remap_particular_ids(&mut first_available_item_id, &mod_definition.items.defined_ids),
+//            sites: remap_particular_ids(&mut first_available_site_id, &mod_definition.sites.defined_ids),
+////            poptype: unimplemented!(), FIXME: is this an issue or not?
+//        };
+//
+//        // Clone doesn't seem to be needed if we consume self
+//        mapped_mods.insert(mod_name.clone(), mapped_mod);
     }
 
     mapped_mods
@@ -293,117 +296,117 @@ fn is_known_summoning_spell(copyspell: &String) -> bool {
 pub fn apply_remapped_ids(lines: &mut Vec<LazyString>, remapped_ids: &HashMap<String, MappedModDefinition>) {
     use LazyString::*;
 
-    for (path, mapped_definition) in remapped_ids {
-        let file = File::open(path).unwrap();
-        let file_buff = BufReader::new(file);
-        let line_iter = file_buff.lines().map(|result| result.unwrap());
-
-        let mut option_spell_block: Option<SpellBlock> = None;
-
-        let mut is_in_description = false;
-        for line in line_iter {
-
-            if is_in_description {
-                if crate::MOD_DESCRIPTION_STOP.is_match(&line) {
-                    // End of description, ditch this line and then continue as normal
-                    is_in_description = false;
-                    continue;
-                } else {
-                    // Throw away a description line
-                    continue;
-                }
-            } else {
-                if let Some(current_spell_block) = &mut option_spell_block {
-                    let is_end_block = current_spell_block.map_line_until_end(&line, lines, &mapped_definition);
-                    if is_end_block {
-                        option_spell_block = None;
-
-                    }
-                    // FIXME: this is real bad but we can't put control flow in `map_line_until_end` soooo
-                    if crate::SPELL_DAMAGE.is_match(&line) {
-                        continue;
-                    }
-                } else if crate::SPELL_BLOCK_START.is_match(&line) {
-                    // If we find a #newspell or a #selectspell, start recording lines
-                    option_spell_block = Some(SpellBlock::new());
-                }
-            }
-
-            if crate::MOD_NAME_LINE.is_match(&line) ||
-                crate::MOD_DESCRIPTION_LINE.is_match(&line) ||
-                crate::MOD_ICON_LINE.is_match(&line) ||
-                crate::MOD_VERSION_LINE.is_match(&line) ||
-                crate::MOD_DOMVERSION_LINE.is_match(&line) {
-                // ditch the mod info
-                continue;
-            } else if crate::MOD_DESCRIPTION_START.is_match(&line) {
-                // Description has started, ditch the line
-                is_in_description = true;
-                continue;
-            } else {
-                let new_line = replace_use(
-                    &line,
-                    &mapped_definition.weapons,
-                    &crate::mod_line_scanner::USE_NUMBERED_WEAPON
-                ).or_else(||
-                    replace_use(
-                        &line,
-                        &mapped_definition.armours,
-                        &crate::mod_line_scanner::USE_NUMBERED_ARMOUR)
-                ).or_else(|| {
-                    if let Some(capture) = crate::mod_line_scanner::USE_MONSTER.captures(&line) {
-
-                        let found_id = i32::from_str(capture.name("id").unwrap().as_str()).unwrap();
-                        if found_id > 0 {
-
-                            if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
-                                let new_line: String = crate::mod_line_scanner::USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
-                                    format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                                }).to_string();
-                                Some(new_line)
-                            } else {
-                                Some(line.clone())
-                            }
-                        } else {
-                            // it's a montag!
-                            if let Some(new_id) = mapped_definition.montags.get(&(-found_id as u32)) {
-                                let new_line: String = crate::mod_line_scanner::USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
-                                    format!("{}-{}{}", &captures["prefix"], new_id, &captures["suffix"])
-                                }).to_string();
-                                Some(new_line)
-                            } else {
-                                Some(line.clone())
-                            }
-                        }
-                    } else { None }
-                }).or_else(||
-                    replace_use(&line, &mapped_definition.name_types, &crate::mod_line_scanner::USE_NAMETYPE)
-                ).or_else(||
-                    replace_use(&line, &mapped_definition.spells, &crate::mod_line_scanner::USE_NUMBERED_SPELL)
-                ).or_else(||
-                    replace_use(&line, &mapped_definition.nations, &crate::mod_line_scanner::USE_NUMBERED_NATION)
-                ).or_else(||
-                    // n.b.: some of the montags have been mapped in the monsters step above
-                    replace_use(&line, &mapped_definition.montags, &crate::mod_line_scanner::USE_NUMBERED_MONTAG)
-                ).or_else(||
-                    replace_use(&line, &mapped_definition.event_codes, &crate::mod_line_scanner::USE_NUMBERED_EVENTCODE)
-                ).or_else(||
-                    replace_use(&line, &mapped_definition.restricted_items, &crate::mod_line_scanner::USE_NUMBERED_RESTRICTED_ITEM)
-                ).or_else(||
-                    replace_use(&line, &mapped_definition.items, &crate::mod_line_scanner::USE_NUMBERED_ITEM)
-                ).or_else(||
-                    replace_use(&line, &mapped_definition.sites, &crate::mod_line_scanner::USE_NUMBERED_SITE)
-                )
-                .or_else(||
-                    replace_use(&line, &mapped_definition.enchantments, &crate::mod_line_scanner::USE_GLOBAL_ENCHANTMENT)
-                )
-                    .or_else(|| Some(line.clone()));
-
-                if let Some(some_new_line) = new_line {
-                    lines.push(S(some_new_line));
-                }
-            }
-        }
-
-    }
+//    for (path, mapped_definition) in remapped_ids {
+//        let file = File::open(path).unwrap();
+//        let file_buff = BufReader::new(file);
+//        let line_iter = file_buff.lines().map(|result| result.unwrap());
+//
+//        let mut option_spell_block: Option<SpellBlock> = None;
+//
+//        let mut is_in_description = false;
+//        for line in line_iter {
+//
+//            if is_in_description {
+//                if crate::MOD_DESCRIPTION_STOP.is_match(&line) {
+//                    // End of description, ditch this line and then continue as normal
+//                    is_in_description = false;
+//                    continue;
+//                } else {
+//                    // Throw away a description line
+//                    continue;
+//                }
+//            } else {
+//                if let Some(current_spell_block) = &mut option_spell_block {
+//                    let is_end_block = current_spell_block.map_line_until_end(&line, lines, &mapped_definition);
+//                    if is_end_block {
+//                        option_spell_block = None;
+//
+//                    }
+//                    // FIXME: this is real bad but we can't put control flow in `map_line_until_end` soooo
+//                    if crate::SPELL_DAMAGE.is_match(&line) {
+//                        continue;
+//                    }
+//                } else if crate::SPELL_BLOCK_START.is_match(&line) {
+//                    // If we find a #newspell or a #selectspell, start recording lines
+//                    option_spell_block = Some(SpellBlock::new());
+//                }
+//            }
+//
+//            if crate::MOD_NAME_LINE.is_match(&line) ||
+//                crate::MOD_DESCRIPTION_LINE.is_match(&line) ||
+//                crate::MOD_ICON_LINE.is_match(&line) ||
+//                crate::MOD_VERSION_LINE.is_match(&line) ||
+//                crate::MOD_DOMVERSION_LINE.is_match(&line) {
+//                // ditch the mod info
+//                continue;
+//            } else if crate::MOD_DESCRIPTION_START.is_match(&line) {
+//                // Description has started, ditch the line
+//                is_in_description = true;
+//                continue;
+//            } else {
+//                let new_line = replace_use(
+//                    &line,
+//                    &mapped_definition.weapons,
+//                    &crate::mod_line_scanner::USE_NUMBERED_WEAPON
+//                ).or_else(||
+//                    replace_use(
+//                        &line,
+//                        &mapped_definition.armours,
+//                        &crate::mod_line_scanner::USE_NUMBERED_ARMOUR)
+//                ).or_else(|| {
+//                    if let Some(capture) = crate::mod_line_scanner::USE_MONSTER.captures(&line) {
+//
+//                        let found_id = i32::from_str(capture.name("id").unwrap().as_str()).unwrap();
+//                        if found_id > 0 {
+//
+//                            if let Some(new_id) = mapped_definition.monsters.get(&(found_id as u32)) {
+//                                let new_line: String = crate::mod_line_scanner::USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
+//                                    format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+//                                }).to_string();
+//                                Some(new_line)
+//                            } else {
+//                                Some(line.clone())
+//                            }
+//                        } else {
+//                            // it's a montag!
+//                            if let Some(new_id) = mapped_definition.montags.get(&(-found_id as u32)) {
+//                                let new_line: String = crate::mod_line_scanner::USE_MONSTER.replace(&line, |ref captures: &Captures| -> String {
+//                                    format!("{}-{}{}", &captures["prefix"], new_id, &captures["suffix"])
+//                                }).to_string();
+//                                Some(new_line)
+//                            } else {
+//                                Some(line.clone())
+//                            }
+//                        }
+//                    } else { None }
+//                }).or_else(||
+//                    replace_use(&line, &mapped_definition.name_types, &crate::mod_line_scanner::USE_NAMETYPE)
+//                ).or_else(||
+//                    replace_use(&line, &mapped_definition.spells, &crate::mod_line_scanner::USE_NUMBERED_SPELL)
+//                ).or_else(||
+//                    replace_use(&line, &mapped_definition.nations, &crate::mod_line_scanner::USE_NUMBERED_NATION)
+//                ).or_else(||
+//                    // n.b.: some of the montags have been mapped in the monsters step above
+//                    replace_use(&line, &mapped_definition.montags, &crate::mod_line_scanner::USE_NUMBERED_MONTAG)
+//                ).or_else(||
+//                    replace_use(&line, &mapped_definition.event_codes, &crate::mod_line_scanner::USE_NUMBERED_EVENTCODE)
+//                ).or_else(||
+//                    replace_use(&line, &mapped_definition.restricted_items, &crate::mod_line_scanner::USE_NUMBERED_RESTRICTED_ITEM)
+//                ).or_else(||
+//                    replace_use(&line, &mapped_definition.items, &crate::mod_line_scanner::USE_NUMBERED_ITEM)
+//                ).or_else(||
+//                    replace_use(&line, &mapped_definition.sites, &crate::mod_line_scanner::USE_NUMBERED_SITE)
+//                )
+//                .or_else(||
+//                    replace_use(&line, &mapped_definition.enchantments, &crate::mod_line_scanner::USE_GLOBAL_ENCHANTMENT)
+//                )
+//                    .or_else(|| Some(line.clone()));
+//
+//                if let Some(some_new_line) = new_line {
+//                    lines.push(S(some_new_line));
+//                }
+//            }
+//        }
+//
+//    }
 }

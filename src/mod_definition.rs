@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 
 // A particular thing: weapons, armours, etc
@@ -6,10 +6,10 @@ use std::marker::PhantomData;
 pub struct Definition<'a> {
     // From #newfoo <id> and
     // #selectfoo <id> where id >= FIRST_ASSUMED_ID
-    pub defined_ids: BTreeSet<u32>,
+    pub explicit_definitions: BTreeMap<u32, Vec<String>>,
 
     // From #newfoo with no id
-    pub implicit_definitions: u32,
+    pub implicit_definitions: BTreeSet<Vec<String>>,
 
     // From #selectfoo <id> where id < FIRST_ASSUMED_ID
     pub vanilla_edited_ids: BTreeSet<u32>,
@@ -20,8 +20,8 @@ pub struct Definition<'a> {
 impl<'a> Default for Definition<'a> {
     fn default() -> Self {
         Self {
-            defined_ids: BTreeSet::new(),
-            implicit_definitions: 0,
+            explicit_definitions: BTreeMap::new(),
+            implicit_definitions: BTreeSet::new(),
             vanilla_edited_ids: BTreeSet::new(),
             whatever: PhantomData,
         }
@@ -47,18 +47,18 @@ pub struct ModDefinition<'a> {
 }
 
 pub struct MappedModDefinition {
-    pub weapons: HashMap<u32, u32>,
-    pub armours: HashMap<u32, u32>,
-    pub monsters: HashMap<u32, u32>,
-    pub name_types: HashMap<u32, u32>,
-    pub spells: HashMap<u32, u32>,
-    pub items: HashMap<u32, u32>,
-    pub sites: HashMap<u32, u32>,
-    pub nations: HashMap<u32, u32>,
+    pub weapons: BTreeMap<u32, u32>,
+    pub armours: BTreeMap<u32, u32>,
+    pub monsters: BTreeMap<u32, u32>,
+    pub name_types: BTreeMap<u32, u32>,
+    pub spells: BTreeMap<u32, u32>,
+    pub items: BTreeMap<u32, u32>,
+    pub sites: BTreeMap<u32, u32>,
+    pub nations: BTreeMap<u32, u32>,
     // pub events // can't clash by id
-    pub montags: HashMap<u32, u32>,
-    pub event_codes: HashMap<u32, u32>,
-    pub restricted_items: HashMap<u32, u32>,
-    pub enchantments: HashMap<u32, u32>,
+    pub montags: BTreeMap<u32, u32>,
+    pub event_codes: BTreeMap<u32, u32>,
+    pub restricted_items: BTreeMap<u32, u32>,
+    pub enchantments: BTreeMap<u32, u32>,
 
 }

@@ -9,6 +9,7 @@ use std::str::FromStr;
 
 mod scanner;
 mod mapper;
+mod parser;
 
 mod mod_line_scanner;
 use mod_line_scanner::*;
@@ -89,7 +90,7 @@ fn main() {
       / /\ //  //    \    / /\/  \/ / /_\// /   /_\ / \//
      / /_// \_// /\/\ \/\/ /_/ /\  / /_\\/ /___//__/ _  \
     /___,'\___/\/    \/\____/\_\ \/\____/\____/\__/\/ \_/
-
+                                                  v0.9.5
     Domingler will scan the folder you put it in.
     This probably needs to be your dominions mods folder
     which can be opened from ingame via Tools & Manuals.
