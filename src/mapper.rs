@@ -13,7 +13,7 @@ use maplit::btreeset;
 
 lazy_static! {
     static ref KNOWN_SUMMON_COPYSPELL_IDS: BTreeSet<u32> = {
-        btreeset![805, 818, 875, 893, 920]
+        btreeset![724, 805, 813, 818, 875, 893, 920, 1091]
     };
 
     static ref KNOWN_SUMMON_COPYSPELL_NAMES: BTreeSet<String> = {
@@ -27,6 +27,9 @@ lazy_static! {
             "living mercury".to_owned(),
             "king of elemental earth".to_owned(),
             "summon fire elemental".to_owned(),
+            "pack of wolves".to_owned(),
+            "contact forest giant".to_owned(),
+            "infernal disease".to_owned(),
         ]
     };
 }
