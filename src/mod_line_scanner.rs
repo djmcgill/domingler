@@ -378,6 +378,7 @@ lazy_static! {
             wintershape|\
             landshape|\
             watershape|\
+            twiceborn|\
             domsummon|\
             domsummon2|\
             domsummon20|\
