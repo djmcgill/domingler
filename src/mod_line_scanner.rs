@@ -1,7 +1,7 @@
 use crate::Definition;
+use lazy_static::lazy_static;
 use regex::Regex;
 use std::str::FromStr;
-use lazy_static::lazy_static;
 
 // Domingler does not look for collisions below these IDs
 pub const ASSUMED_FIRST_WEAPON_ID: u32 = 801;
@@ -14,6 +14,7 @@ pub const ASSUMED_FIRST_NATION_ID: u32 = 111; // dangerously low, if 3 new natio
 pub const ASSUMED_FIRST_ITEM_ID: u32 = 501;
 pub const ASSUMED_FIRST_MONTAG_ID: u32 = 1001;
 pub const ASSUMED_FIRST_EVENTCODE_ID: u32 = 301; // technically it's negative but whatever
+pub const ASSUMED_FIRST_ENCHANTMENT_ID: u32 = 200;
 pub const ASSUMED_FIRST_RESTRICTED_ITEM_ID: u32 = 1;
 
 pub struct ModLineScanner {
@@ -32,9 +33,7 @@ impl ModLineScanner {
     /// Note that a line can be only one of those things so this function returns
     /// as soon as one of the regex matches
     /// Returns true if it matched anything
-    pub fn scan_line<'a>(&self,
-                         line: &'a str,
-                         thing_definition: &mut Definition<'a>) -> bool {
+    pub fn scan_line<'a>(&self, line: &'a str, thing_definition: &mut Definition<'a>) -> bool {
         if let Some(new_numbered_regex) = self.option_new_numbered_regex {
             if let Some(capture) = new_numbered_regex.captures(line) {
                 let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
@@ -45,7 +44,10 @@ impl ModLineScanner {
                 } else {
                     let not_already_there = thing_definition.defined_ids.insert(found_id);
                     if !not_already_there {
-                        println!("WARNING: ID in {} was already declared in the same mod", line);
+                        println!(
+                            "WARNING: ID in {} was already declared in the same mod",
+                            line
+                        );
                     }
                     return true;
                 }

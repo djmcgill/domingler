@@ -1,5 +1,5 @@
-use std::collections::{HashMap, BTreeSet};
 use crate::mod_definition::ModDefinition;
+use std::collections::{BTreeSet, HashMap};
 use std::str::FromStr;
 
 pub fn scan_all_mods(mods: &Vec<(String, Vec<String>)>) -> HashMap<String, ModDefinition> {
@@ -37,17 +37,18 @@ pub fn scan_all_mods(mods: &Vec<(String, Vec<String>)>) -> HashMap<String, ModDe
             // Capture declarations:
             // As soon as any match, move on
             // TODO: combine these into a single regex to speed up
-            let _ = crate::WEAPON_LINE_SCANNER.scan_line(line, &mut mod_definition.weapons) ||
-                crate::ARMOUR_LINE_SCANNER.scan_line(line, &mut mod_definition.armours) ||
-                crate::SPELL_LINE_SCANNER.scan_line(line, &mut mod_definition.spells) ||
-                crate::MONSTER_LINE_SCANNER.scan_line(line, &mut mod_definition.monsters) ||
-                crate::ITEM_LINE_SCANNER.scan_line(line, &mut mod_definition.items) ||
-                crate::SITE_LINE_SCANNER.scan_line(line, &mut mod_definition.sites) ||
-                crate::NATION_LINE_SCANNER.scan_line(line, &mut mod_definition.nations) ||
-                crate::NAMETYPE_LINE_SCANNER.scan_line(line, &mut mod_definition.name_types) ||
-                crate::MONTAG_LINE_SCANNER.scan_line(line, &mut mod_definition.montags) ||
-                crate::EVENTCODE_LINE_SCANNER.scan_line(line, &mut mod_definition.event_codes) ||
-                crate::RESTRICTED_ITEM_LINE_SCANNER.scan_line(line, &mut mod_definition.restricted_items);
+            let _ = crate::WEAPON_LINE_SCANNER.scan_line(line, &mut mod_definition.weapons)
+                || crate::ARMOUR_LINE_SCANNER.scan_line(line, &mut mod_definition.armours)
+                || crate::SPELL_LINE_SCANNER.scan_line(line, &mut mod_definition.spells)
+                || crate::MONSTER_LINE_SCANNER.scan_line(line, &mut mod_definition.monsters)
+                || crate::ITEM_LINE_SCANNER.scan_line(line, &mut mod_definition.items)
+                || crate::SITE_LINE_SCANNER.scan_line(line, &mut mod_definition.sites)
+                || crate::NATION_LINE_SCANNER.scan_line(line, &mut mod_definition.nations)
+                || crate::NAMETYPE_LINE_SCANNER.scan_line(line, &mut mod_definition.name_types)
+                || crate::MONTAG_LINE_SCANNER.scan_line(line, &mut mod_definition.montags)
+                || crate::EVENTCODE_LINE_SCANNER.scan_line(line, &mut mod_definition.event_codes)
+                || crate::RESTRICTED_ITEM_LINE_SCANNER
+                    .scan_line(line, &mut mod_definition.restricted_items);
         }
 
         hash_map.insert(path.clone(), mod_definition);
