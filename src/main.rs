@@ -1,14 +1,14 @@
 #![recursion_limit = "128"]
 
 use lazy_static::lazy_static;
-use regex::{Regex, Captures};
+use regex::{Captures, Regex};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::str::FromStr;
 
-mod scanner;
 mod mapper;
+mod scanner;
 
 mod mod_line_scanner;
 use mod_line_scanner::*;
@@ -79,11 +79,12 @@ lazy_static! {
 // and we can't know until we've also looked at the spell's #effect
 pub enum LazyString {
     S(String),
-    Thunk(Box<dyn Fn() -> String>)
+    Thunk(Box<dyn Fn() -> String>),
 }
 
 fn main() {
-    println!(r#"
+    println!(
+        r#"
         ___  ___         _____    __  ___   __    __  __
        /   \/___\/\/\    \_   \/\ \ \/ _ \ / /   /__\/__\
       / /\ //  //    \    / /\/  \/ / /_\// /   /_\ / \//
@@ -96,7 +97,8 @@ fn main() {
     However you can also make a specific folder containing
     only the mods that you want to mingle.
 
-    Press [enter] to continue..."#);
+    Press [enter] to continue..."#
+    );
     {
         let stdin = std::io::stdin();
         let _ = stdin.lock().lines().next().unwrap().unwrap();
@@ -119,7 +121,6 @@ fn main() {
                     }
                 }
             }
-
         }
     }
 
@@ -171,7 +172,9 @@ fn main() {
     // TODO: add the mod names to the description
     let mut lines: Vec<LazyString> = vec![
         LazyString::S("#modname \"domingler mod\"".to_owned()),
-        LazyString::S(format!("#description \"a combination of: some shit or whatever\"")),
+        LazyString::S(format!(
+            "#description \"a combination of: some shit or whatever\""
+        )),
     ];
 
     // TODO: pick an era and then also map all nations to same era?
@@ -201,9 +204,11 @@ fn replace_use(line: &str, map: &HashMap<u32, u32>, regex: &Regex) -> Option<Str
     if let Some(capture) = regex.captures(&line) {
         let found_id = u32::from_str(capture.name("id").unwrap().as_str()).unwrap();
         if let Some(new_id) = map.get(&found_id) {
-            let new_line: String = regex.replace(&line, |ref captures: &Captures| -> String {
-                format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
-            }).to_string();
+            let new_line: String = regex
+                .replace(&line, |ref captures: &Captures| -> String {
+                    format!("{}{}{}", &captures["prefix"], new_id, &captures["suffix"])
+                })
+                .to_string();
             Some(new_line)
         } else {
             Some(line.to_owned())

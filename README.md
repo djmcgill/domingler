@@ -5,13 +5,12 @@ mingle them together and remap IDs as needed.
 
 ### TODO:
 - ID types still not scanned:
-    - events
+    - events (the #id command in an event)
     - poptypes
 - scan names:
     - all existing IDs
     - also mercs
 - proper way to give inputs etc
-- check limits
 - there's a bunch of FIXMEs
 
 ### Usage:

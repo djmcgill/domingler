@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeSet};
+use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
 
 // A particular thing: weapons, armours, etc
@@ -60,5 +60,4 @@ pub struct MappedModDefinition {
     pub event_codes: HashMap<u32, u32>,
     pub restricted_items: HashMap<u32, u32>,
     pub enchantments: HashMap<u32, u32>,
-
 }
