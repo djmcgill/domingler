@@ -47,7 +47,17 @@ lazy_static! {
         ").unwrap();
     static ref SPELL_COPY_NAME: Regex = Regex::new("^\
         (?P<prefix>[ \t]*#copyspell[ \t]+\")\
-        (?P<id>[^\"]+)\
+        (?P<name>[^\"]+)\
+        (?P<suffix>\".*)$\
+        ").unwrap();
+    static ref SPELL_SELECT_ID: Regex = Regex::new("^\
+        (?P<prefix>[ \t]*#selectspell[ \t]+)\
+        (?P<id>[-]?[[:digit:]]+)\
+        (?P<suffix>.*)$\
+        ").unwrap();
+    static ref SPELL_SELECT_NAME: Regex = Regex::new("^\
+        (?P<prefix>[ \t]*#selectspell[ \t]+\")\
+        (?P<name>[^\"]+)\
         (?P<suffix>\".*)$\
         ").unwrap();
 
@@ -79,7 +89,16 @@ lazy_static! {
 // and we can't know until we've also looked at the spell's #effect
 pub enum LazyString {
     S(String),
+    // FIXME: does doesn't actually need to be a thunk, could be Ref<Option<String>>
     Thunk(Box<dyn Fn() -> String>),
+}
+impl std::fmt::Debug for LazyString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::S(owned) => owned.fmt(f),
+            Self::Thunk(boxed_fn) => (boxed_fn)().fmt(f),
+        }
+    }
 }
 
 fn main() {
