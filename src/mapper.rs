@@ -73,7 +73,7 @@ pub fn remap_ids(
         31 + crate::ASSUMED_FIRST_ARMOUR_ID + armours_implicit_definition_count;
     let mut first_available_monster_id =
         105 + crate::ASSUMED_FIRST_MONSTER_ID + monsters_implicit_definition_count;
-    println!("first available monster ID: {}", first_available_monster_id);
+    // println!("first available monster ID: {}", first_available_monster_id);
 
     let mut first_available_name_type_id =
         crate::ASSUMED_FIRST_NAMETYPE_ID + name_types_implicit_definition_count;
@@ -170,16 +170,25 @@ fn remap_particular_ids(
     mapped_ids
 }
 
+struct ParsedSpellBlock {
+    copyspell: Option<String>,
+    selectspell: Option<String>,
+    effect: Option<u64>,
+    damage: Option<i64>,
+}
+
 // When parsing a spell, we can't know what to map it's #damage line to until
 // we've seen the whole thing. So we keep its lines here (as well as a ref to
 // where we will put the damage line)
 struct SpellBlock {
+    start_line: String,
     lines: Vec<String>,
     eventual_damage_line: Rc<RefCell<Option<String>>>,
 }
 impl SpellBlock {
-    pub fn new() -> Self {
+    pub fn new(start_line: String) -> Self {
         Self {
+            start_line,
             lines: Vec::new(),
             eventual_damage_line: Rc::new(RefCell::new(None)),
         }
@@ -204,27 +213,34 @@ impl SpellBlock {
         }))
     }
     // TODO: we're scanning for damage a few times now
-    fn capture_effect_and_copyspell_and_damage(
+    fn parse_spell(
         &self,
-    ) -> (Option<u64>, Option<String>, Option<i64>) {
+    ) -> ParsedSpellBlock {
         let mut option_effect = None;
         let mut option_copyspell_line = None;
         let mut option_damage = None;
-        for spell_line in self.lines.iter() {
+        let mut option_selectspell_line = None;
+        let iter = std::iter::once(&self.start_line).chain(self.lines.iter());
+        for spell_line in iter {
             if let Some(effect_capture) = crate::SPELL_EFFECT.captures(spell_line) {
                 let found_id = u64::from_str(effect_capture.name("id").unwrap().as_str()).unwrap();
                 option_effect = Some(found_id)
-            } else if crate::SPELL_COPY_ID.is_match(spell_line) {
-                option_copyspell_line = Some(spell_line.clone())
-            } else if crate::SPELL_COPY_NAME.is_match(spell_line) {
+            } else if crate::SPELL_COPY_ID.is_match(spell_line) || crate::SPELL_COPY_NAME.is_match(spell_line) {
                 option_copyspell_line = Some(spell_line.clone())
             } else if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(spell_line) {
                 let found_id = i64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
                 option_damage = Some(found_id)
+            } else if crate::SPELL_SELECT_ID.is_match(spell_line) || crate::SPELL_SELECT_NAME.is_match(spell_line) {
+                option_selectspell_line = Some(spell_line.clone())
             }
         }
 
-        (option_effect, option_copyspell_line, option_damage)
+        ParsedSpellBlock {
+            copyspell: option_copyspell_line,
+            damage: option_damage,
+            effect: option_effect,
+            selectspell: option_selectspell_line,
+        }
     }
 
     // Map the damage line, given that it's an effect
@@ -296,9 +312,9 @@ impl SpellBlock {
             false
         } else if crate::END.is_match(&line) {
             // URGH going to need some lookahead on this
-            let (option_effect, option_copyspell_line, option_damage) =
-                self.capture_effect_and_copyspell_and_damage();
-            if let Some(effect) = option_effect {
+            let parsed_spell =
+                self.parse_spell();
+            if let Some(effect) = parsed_spell.effect {
                 if crate::ENCHANTMENT_EFFECTS.contains(&effect) {
                     self.map_enchantment_damage_line(mapped_definition);
                 } else if crate::SUMMONING_EFFECTS.contains(&effect) {
@@ -306,19 +322,19 @@ impl SpellBlock {
                 }
             } else {
                 // Do we have a copyspell?
-                if let Some(copyspell_line) = option_copyspell_line {
+                if let Some(copyspell_line) = parsed_spell.copyspell {
                     // We know it's a summon spell
                     if is_known_summoning_spell(&copyspell_line) {
                         //                        println!("{} is a known copyspell line", copyspell_line);
                         self.map_summoning_damage_line(mapped_definition);
-                    } else if let Some(damage) = option_damage {
-                        // does the damage matche a monster, montag, or ench?
+                    } else if let Some(damage) = parsed_spell.damage {
+                        // does the damage match a monster, montag, or ench?
                         //                        println!("{} is NOT a known copyspell line", copyspell_line);
                         if damage > 0 {
                             if let Some(new_id) = mapped_definition.monsters.get(&(damage as u32)) {
                                 if (damage as u32) >= ASSUMED_FIRST_MONSTER_ID {
                                     println!(
-                                        "WARNING! '{}' found for a monster ID \
+                                        "WARNING! '{}' found for a potential monster ID \
                                          which might need to be manually mapped from {} to {}",
                                         copyspell_line, damage, new_id
                                     );
@@ -327,7 +343,7 @@ impl SpellBlock {
                                 mapped_definition.enchantments.get(&(damage as u32))
                             {
                                 println!(
-                                    "WARNING! '{}' found for an enchantment ID \
+                                    "WARNING! '{}' found for a potential enchantment ID \
                                      which might need to be manually mapped from {} to {}",
                                     copyspell_line, damage, new_id
                                 );
@@ -335,13 +351,47 @@ impl SpellBlock {
                         } else {
                             if let Some(new_id) = mapped_definition.montags.get(&(-damage as u32)) {
                                 println!(
-                                    "WARNING! '{}' found for a montag ID \
+                                    "WARNING! '{}' found for a potential montag ID \
                                      which might need to be manually mapped from {} to {}",
                                     copyspell_line, -damage, new_id
                                 );
                             }
                         }
                     }
+                    // god this code is really messy
+                } else if let Some(selectspell) = parsed_spell.selectspell {
+                    if let Some(damage) = parsed_spell.damage {
+                        // does the damage match a monster, montag, or ench?
+                        if damage > 0 {
+                            if let Some(new_id) = mapped_definition.monsters.get(&(damage as u32)) {
+                                if (damage as u32) >= ASSUMED_FIRST_MONSTER_ID {
+                                    println!(
+                                        "WARNING! '{}' found for a potential monster ID \
+                                         which might need to be manually mapped from {} to {}",
+                                         selectspell, damage, new_id
+                                    );
+                                }
+                            } else if let Some(new_id) =
+                                mapped_definition.enchantments.get(&(damage as u32))
+                            {
+                                println!(
+                                    "WARNING! '{}' found for a potential enchantment ID \
+                                     which might need to be manually mapped from {} to {}",
+                                     selectspell, damage, new_id
+                                );
+                            }
+                        } else {
+                            if let Some(new_id) = mapped_definition.montags.get(&(-damage as u32)) {
+                                println!(
+                                    "WARNING! '{}' found for a potential montag ID \
+                                     which might need to be manually mapped from {} to {}",
+                                     selectspell, -damage, new_id
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    println!("Found a spell which has no damage, no copyspell, and no selectspell. Please report this to the author.")
                 }
             }
             true
@@ -354,7 +404,7 @@ impl SpellBlock {
 fn is_known_summoning_spell(copyspell: &String) -> bool {
     if let Some(name_capture) = crate::SPELL_COPY_NAME.captures(copyspell) {
         //        println!("copyspell name {:?}", name_capture);
-        let found_name = name_capture.name("id").unwrap().as_str();
+        let found_name = name_capture.name("name").unwrap().as_str();
         KNOWN_SUMMON_COPYSPELL_NAMES.contains(&found_name.to_lowercase())
     } else if let Some(id_capture) = crate::SPELL_COPY_ID.captures(copyspell) {
         //        println!("copyspell id {:?}", id_capture);
@@ -402,7 +452,7 @@ pub fn apply_remapped_ids(
                     }
                 } else if crate::SPELL_BLOCK_START.is_match(&line) {
                     // If we find a #newspell or a #selectspell, start recording lines
-                    option_spell_block = Some(SpellBlock::new());
+                    option_spell_block = Some(SpellBlock::new(line.clone()));
                 }
             }
 
