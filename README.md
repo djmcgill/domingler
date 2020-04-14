@@ -1,10 +1,9 @@
 # Domingler
 
-Takes mods for dominions 5, and scans them for the IDs that they use. In the future it will actually 
-mingle them together and remap IDs as needed. 
+Takes mods for dominions 5, and scans them for the IDs that they use. In the future it will actually
+mingle them together and remap IDs as needed.
 
 ### TODO:
-- FIXME: we have a spell without copyspell or an effect - we should also warn
 - ID types still not scanned:
     - events (the #id command in an event)
     - poptypes

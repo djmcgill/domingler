@@ -541,7 +541,18 @@ lazy_static! {
             killmon|\
             kill2d6mon|\
             killcom|\
-            copystats)[ \t]+)\
+            copystats|\
+            coastrec|\
+            coastcom|\
+            natmon|\
+            natcom|\
+            domshape|\
+            notdomshape|\
+            slaver|\
+            req_godismnr|\
+            notmnr|\
+            batstartsum1d3\
+        )[ \t]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
     ").unwrap();
@@ -575,7 +586,9 @@ lazy_static! {
             req_domowner|\
             req_targowner|\
             assowner|\
-            extramsg\
+            extramsg|\
+            nat|\
+            req_targnotowner\
         )[ \t]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
@@ -626,7 +639,11 @@ lazy_static! {
             req_anycode|\
             req_notanycode|\
             req_nearbycode|\
-            req_nearowncode\
+            req_nearowncode|\
+            codedelay|\
+            codedelay2|\
+            resetcodedelay|\
+            resetcodedelay2\
         )[ \t]+-)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
@@ -657,7 +674,9 @@ lazy_static! {
             req_friendlyench|\
             req_hostileench|\
             req_enchdom|\
-            nationench\
+            nationench|\
+            enchrebate25p|\
+            enchrebate50p\
         )[ \t]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
