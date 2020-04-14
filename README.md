@@ -14,6 +14,6 @@ mingle them together and remap IDs as needed.
 - there's a bunch of FIXMEs
 
 ### Usage:
-Put executable in the same fold as some .dm files. It could be your dominions mods folder, it could be a different one. Run it.
+Put executable in the same folder as some .dm files. It could be your dominions mods folder, it could be a different one. Run it.
 
 Now you have a `domingler.dm` mod and can 1) edit to change name, description, icon etc and 2) package it with the sprite folders from its constituent mods.
