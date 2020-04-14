@@ -13,7 +13,7 @@ use std::str::FromStr;
 
 lazy_static! {
     static ref KNOWN_SUMMON_COPYSPELL_IDS: BTreeSet<u32> =
-        { btreeset![724, 805, 813, 818, 875, 893, 920, 1091] };
+        { btreeset![721, 724, 733, 795, 805, 813, 818, 847, 875, 893, 900, 920, 1091] };
     static ref KNOWN_SUMMON_COPYSPELL_NAMES: BTreeSet<String> = {
         btreeset![
             "animate skeleton".to_owned(),
@@ -28,6 +28,9 @@ lazy_static! {
             "pack of wolves".to_owned(),
             "contact forest giant".to_owned(),
             "infernal disease".to_owned(),
+            "hannya pact".to_owned(),
+            "swarm".to_owned(),
+            "creeping doom".to_owned(),
         ]
     };
 }
@@ -213,9 +216,7 @@ impl SpellBlock {
         }))
     }
     // TODO: we're scanning for damage a few times now
-    fn parse_spell(
-        &self,
-    ) -> ParsedSpellBlock {
+    fn parse_spell(&self) -> ParsedSpellBlock {
         let mut option_effect = None;
         let mut option_copyspell_line = None;
         let mut option_damage = None;
@@ -225,12 +226,16 @@ impl SpellBlock {
             if let Some(effect_capture) = crate::SPELL_EFFECT.captures(spell_line) {
                 let found_id = u64::from_str(effect_capture.name("id").unwrap().as_str()).unwrap();
                 option_effect = Some(found_id)
-            } else if crate::SPELL_COPY_ID.is_match(spell_line) || crate::SPELL_COPY_NAME.is_match(spell_line) {
+            } else if crate::SPELL_COPY_ID.is_match(spell_line)
+                || crate::SPELL_COPY_NAME.is_match(spell_line)
+            {
                 option_copyspell_line = Some(spell_line.clone())
             } else if let Some(damage_capture) = crate::SPELL_DAMAGE.captures(spell_line) {
                 let found_id = i64::from_str(damage_capture.name("id").unwrap().as_str()).unwrap();
                 option_damage = Some(found_id)
-            } else if crate::SPELL_SELECT_ID.is_match(spell_line) || crate::SPELL_SELECT_NAME.is_match(spell_line) {
+            } else if crate::SPELL_SELECT_ID.is_match(spell_line)
+                || crate::SPELL_SELECT_NAME.is_match(spell_line)
+            {
                 option_selectspell_line = Some(spell_line.clone())
             }
         }
@@ -312,8 +317,7 @@ impl SpellBlock {
             false
         } else if crate::END.is_match(&line) {
             // URGH going to need some lookahead on this
-            let parsed_spell =
-                self.parse_spell();
+            let parsed_spell = self.parse_spell();
             if let Some(effect) = parsed_spell.effect {
                 if crate::ENCHANTMENT_EFFECTS.contains(&effect) {
                     self.map_enchantment_damage_line(mapped_definition);
@@ -358,7 +362,7 @@ impl SpellBlock {
                             }
                         }
                     }
-                    // god this code is really messy
+                // god this code is really messy
                 } else if let Some(selectspell) = parsed_spell.selectspell {
                     if let Some(damage) = parsed_spell.damage {
                         // does the damage match a monster, montag, or ench?
@@ -368,7 +372,7 @@ impl SpellBlock {
                                     println!(
                                         "WARNING! '{}' found for a potential monster ID \
                                          which might need to be manually mapped from {} to {}",
-                                         selectspell, damage, new_id
+                                        selectspell, damage, new_id
                                     );
                                 }
                             } else if let Some(new_id) =
@@ -377,7 +381,7 @@ impl SpellBlock {
                                 println!(
                                     "WARNING! '{}' found for a potential enchantment ID \
                                      which might need to be manually mapped from {} to {}",
-                                     selectspell, damage, new_id
+                                    selectspell, damage, new_id
                                 );
                             }
                         } else {
@@ -385,7 +389,7 @@ impl SpellBlock {
                                 println!(
                                     "WARNING! '{}' found for a potential montag ID \
                                      which might need to be manually mapped from {} to {}",
-                                     selectspell, -damage, new_id
+                                    selectspell, -damage, new_id
                                 );
                             }
                         }
