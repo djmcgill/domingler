@@ -328,7 +328,7 @@ impl SpellBlock {
                 // Do we have a copyspell?
                 if let Some(copyspell_line) = parsed_spell.copyspell {
                     // We know it's a summon spell
-                    if is_known_summoning_spell(&copyspell_line) {
+                    if is_known_summoning_copyspell(&copyspell_line) {
                         //                        println!("{} is a known copyspell line", copyspell_line);
                         self.map_summoning_damage_line(mapped_definition);
                     } else if let Some(damage) = parsed_spell.damage {
@@ -364,7 +364,9 @@ impl SpellBlock {
                     }
                 // god this code is really messy
                 } else if let Some(selectspell) = parsed_spell.selectspell {
-                    if let Some(damage) = parsed_spell.damage {
+                    if is_known_summoning_selectspell(&selectspell) {
+                        self.map_summoning_damage_line(mapped_definition);
+                    } else if let Some(damage) = parsed_spell.damage {
                         // does the damage match a monster, montag, or ench?
                         if damage > 0 {
                             if let Some(new_id) = mapped_definition.monsters.get(&(damage as u32)) {
@@ -405,13 +407,25 @@ impl SpellBlock {
     }
 }
 
-fn is_known_summoning_spell(copyspell: &String) -> bool {
+fn is_known_summoning_copyspell(copyspell: &String) -> bool {
     if let Some(name_capture) = crate::SPELL_COPY_NAME.captures(copyspell) {
         //        println!("copyspell name {:?}", name_capture);
         let found_name = name_capture.name("name").unwrap().as_str();
         KNOWN_SUMMON_COPYSPELL_NAMES.contains(&found_name.to_lowercase())
     } else if let Some(id_capture) = crate::SPELL_COPY_ID.captures(copyspell) {
         //        println!("copyspell id {:?}", id_capture);
+        let found_id = u32::from_str(id_capture.name("id").unwrap().as_str()).unwrap();
+        KNOWN_SUMMON_COPYSPELL_IDS.contains(&found_id)
+    } else {
+        false
+    }
+}
+
+fn is_known_summoning_selectspell(selectspell: &String) -> bool {
+    if let Some(name_capture) = crate::SPELL_SELECT_NAME.captures(selectspell) {
+        let found_name = name_capture.name("name").unwrap().as_str();
+        KNOWN_SUMMON_COPYSPELL_NAMES.contains(&found_name.to_lowercase())
+    } else if let Some(id_capture) = crate::SPELL_SELECT_ID.captures(selectspell) {
         let found_id = u32::from_str(id_capture.name("id").unwrap().as_str()).unwrap();
         KNOWN_SUMMON_COPYSPELL_IDS.contains(&found_id)
     } else {
