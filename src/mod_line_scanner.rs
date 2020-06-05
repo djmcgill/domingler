@@ -332,7 +332,8 @@ lazy_static! {
             req_nositenbr|\
             addsite|\
             removesite|\
-            hiddensite\
+            hiddensite|\
+            futuresite\
         )[ \t]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
