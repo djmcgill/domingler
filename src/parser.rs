@@ -2,7 +2,7 @@ use nom::IResult;
 use std::collections::{BTreeMap, BTreeSet};
 use nom::error::ParseError;
 use nom::bytes::complete::{tag, take_until};
-use nom::character::complete::{space0, anychar, digit1, line_ending};
+use nom::character::complete::{space0, anychar, digit1, line_ending, not_line_ending};
 use nom::branch::alt;
 use nom::combinator::opt;
 use either::{Left, Right, Either};
@@ -11,6 +11,12 @@ use std::str::FromStr;
 
 mod weapon;
 use weapon::Weapon;
+
+mod armour;
+use armour::Armour;
+
+mod nation;
+use nation::Nation;
 
 enum ParseBlockType {
     Weapon,
@@ -34,11 +40,11 @@ struct ParseState {
 struct ParsedMod<'a> {
     mod_info: ModInfo,
     weapons: Vec<Weapon<'a>>,
-    armours: Vec<Armour>,
+    armours: Vec<Armour<'a>>,
     monsters: Vec<Monster>,
     name_types: Vec<NameType>,
     sites: Vec<Site>,
-    nations: Vec<Nation>,
+    nations: Vec<Nation<'a>>,
     spells: Vec<Spell>,
     items: Vec<Item>,
     pop_type: Vec<PopType>,
@@ -51,14 +57,13 @@ struct ModInfo { pub lines: Vec<Vec<String>> }
 fn parse_comment_line_end<'a, E: ParseError<&'a str>>(
     input: &'a str
 ) -> IResult<&'a str, (), E> {
-    let (input, _) = take_until(line_ending)(input)?;
+    let (input, _) = not_line_ending(input)?;
     let (input, _) = line_ending(input)?;
     Ok((input, ()))
 }
 
-
 // TODO: map instead of this returning either
-pub fn parse_name<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Either<u32, &'a str>, E> {
+pub fn parse_name_either<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Either<u32, &'a str>, E> {
     let (input, _) = tag("\"")(input)?;
     let (input, name) = take_until("\"")(input)?;
     let (input, _) = tag("\"")(input)?;
@@ -66,17 +71,21 @@ pub fn parse_name<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str
     Ok((input, Right(name)))
 }
 
-pub fn parse_id<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Either<u32, &'a str>, E> {
+pub fn parse_id_either<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Either<u32, &'a str>, E> {
     let (input, number) = digit1(input)?;
     // FIXME
     Ok((input, Left(u32::from_str(number).unwrap())))
 }
 
-struct Armour { pub lines: Vec<Vec<String>> }
+pub fn parse_id<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, u32, E> {
+    let (input, number) = digit1(input)?;
+    // FIXME
+    Ok((input, u32::from_str(number).unwrap()))
+}
+
 struct Monster { pub lines: Vec<Vec<String>> }
 struct NameType { pub lines: Vec<Vec<String>> }
 struct Site { pub lines: Vec<Vec<String>> }
-struct Nation { pub lines: Vec<Vec<String>> }
 struct Spell { pub lines: Vec<Vec<String>> }
 struct Item { pub lines: Vec<Vec<String>> }
 struct PopType { pub lines: Vec<Vec<String>> }
