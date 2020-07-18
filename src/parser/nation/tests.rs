@@ -442,7 +442,7 @@ Priests: Shaman-mages. Plentiful but of average strength."
     let (_, nation) = parse_nation::<()>(input).unwrap();
 
     match nation.declaration {
-        NationDeclaration::NewNation => (), // pass
+        NationDeclaration::NewImplicit => (), // pass
         other => panic!("Unexpected decl: {:?}", other),
     }
 

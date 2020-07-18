@@ -3,17 +3,17 @@ use super::*;
 #[test]
 fn parse_a_name() {
    let input = "\"foo\"";
-   let (remaining, name) = parse_name_either::<()>(input).unwrap();
+   let (remaining, name) = parse_name::<()>(input).unwrap();
    assert_eq!(remaining.len(), 0);
-   assert_eq!(name.right().unwrap(), "foo");
+   assert_eq!(name, "foo");
 }
 
 #[test]
 fn parse_an_id() {
    let input = "39";
-   let (remaining, name) = parse_id_either::<()>(input).unwrap();
+   let (remaining, id) = parse_id::<()>(input).unwrap();
    assert_eq!(remaining.len(), 0);
-   assert_eq!(name.left().unwrap(), 39);
+   assert_eq!(id, 39);
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn parse_weapon_1() {
    let (_, weapon) = parse_weapon::<()>(input).unwrap();
 
    match weapon.declaration {
-      WeaponDeclaration::NewWeapon(Some(852)) => (), // pass
+      WeaponDeclaration::NewId(852) => (), // pass
       other => panic!("Unexpected weapon declaration: {:?}", other),
    }
 
@@ -57,7 +57,7 @@ fn parse_weapon_2() {
    let (_, weapon) = parse_weapon::<()>(input).unwrap();
 
    match weapon.declaration {
-      WeaponDeclaration::NewWeapon(None) => (), // pass
+      WeaponDeclaration::NewImplicit => (), // pass
       other => panic!("Unexpected decl: {:?}", other),
    }
 

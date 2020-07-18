@@ -15,7 +15,7 @@ fn parse_armour_1() {
     let (_, armour) = parse_armour::<()>(input).unwrap();
 
     match armour.declaration {
-        ArmourDeclaration::NewArmour(Some(799)) => (), // pass
+        ArmourDeclaration::NewId(799) => (), // pass
         other => panic!("Unexpected declaration: {:?}", other),
     }
 

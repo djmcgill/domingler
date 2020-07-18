@@ -9,27 +9,20 @@ use std::str::FromStr;
 use nom::IResult;
 use nom::sequence::tuple;
 
-use crate::parser::{parse_name_either, parse_id_either, parse_comment_line_end};
+use crate::parser::{parse_name, parse_id, parse_comment_line_end};
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum WeaponDeclaration<'a> {
     SelectId(u32),
     SelectName(&'a str),
-    NewWeapon(Option<u32>),
-}
-impl<'a> WeaponDeclaration<'a> {
-    pub fn select_from_either(either_id_name: Either<u32, &'a str>) -> WeaponDeclaration<'a> {
-        match either_id_name {
-            Either::Left(id) => WeaponDeclaration::SelectId(id),
-            Either::Right(name) => WeaponDeclaration::SelectName(name),
-        }
-    }
+    NewId(u32),
+    NewImplicit
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum WeaponLine<'a> {
     Declaration,
     End,
@@ -38,7 +31,7 @@ pub enum WeaponLine<'a> {
     Unparsed(&'a str),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Weapon<'a> {
     pub declaration: WeaponDeclaration<'a>,
     // pub name: Option<&'a str>, // only needed for new weapons and must be first
@@ -51,41 +44,46 @@ pub struct Weapon<'a> {
 
 fn parse_select_weapon<'a, E: ParseError<&'a str>>(
     input: &'a str
-) -> IResult<&'a str, Either<u32, &'a str>, E> {
+) -> IResult<&'a str, WeaponDeclaration<'a>, E> {
     let (input, _) = tag("#selectweapon")(input)?;
     let (input, _) = space0(input)?;
     let (input, either_id_name) = alt((
-        parse_id_either,
-        parse_name_either,
+        map(parse_id, |id| WeaponDeclaration::SelectId(id)),
+        map(parse_name, |name| WeaponDeclaration::SelectName(name)),
     ))(input)?;
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
+    let (input, _) = parse_comment_line_end(input)?;
+
 
     Ok((input, either_id_name))
 }
 
 fn parse_new_weapon<'a, E: ParseError<&'a str>>(
     input: &'a str
-) -> IResult<&'a str, Option<u32>, E> {
+) -> IResult<&'a str, WeaponDeclaration<'a>, E> {
     let (input, _) = tag("#newweapon")(input)?;
     let (input, _) = space0(input)?;
     let (input, opt_weapon_id_str) = opt(digit1)(input)?;
     let opt_weapon_id = opt_weapon_id_str
         .map(|weapon_id_str| u32::from_str(weapon_id_str).unwrap_or_else(|_| panic!("could not parse valid integer id from '{}'", weapon_id_str))); // FIXME
 
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
+    let declaration = match opt_weapon_id {
+        Some(weapon_id) => WeaponDeclaration::NewId(weapon_id),
+        None => WeaponDeclaration::NewImplicit,
+    };
 
-    Ok((input, opt_weapon_id))
+    Ok((input, declaration))
 }
 
 fn parse_weapon_declaration<'a, E: ParseError<&'a str>>(
     input: &'a str
 ) -> IResult<&'a str, WeaponDeclaration<'a>, E> {
+    let (input, _) = space0(input)?;
+
     let (input, weapon_declaration) = alt((
-        map(parse_new_weapon, |opt_id| WeaponDeclaration::NewWeapon(opt_id)),
-        map(parse_select_weapon, |either_id_name| WeaponDeclaration::select_from_either(either_id_name))
+        parse_new_weapon,
+        parse_select_weapon,
     ))(input)?;
+
 
     Ok((input, weapon_declaration))
 }
@@ -105,8 +103,7 @@ pub fn parse_weapon<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a s
     let (input, _) = tag("#end")(input)?;
     lines.push(WeaponLine::End);
 
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
+    let (input, _) = parse_comment_line_end(input)?;
 
 
     Ok((input, Weapon {

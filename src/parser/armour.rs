@@ -9,34 +9,27 @@ use std::str::FromStr;
 use nom::IResult;
 use nom::sequence::tuple;
 
-use crate::parser::{parse_name_either, parse_id_either, parse_comment_line_end};
+use crate::parser::{parse_name, parse_id, parse_comment_line_end};
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArmourDeclaration<'a> {
     SelectId(u32),
     SelectName(&'a str),
-    NewArmour(Option<u32>),
-}
-impl<'a> ArmourDeclaration<'a> {
-    pub fn select_from_either(either_id_name: Either<u32, &'a str>) -> ArmourDeclaration<'a> {
-        match either_id_name {
-            Either::Left(id) => ArmourDeclaration::SelectId(id),
-            Either::Right(name) => ArmourDeclaration::SelectName(name),
-        }
-    }
+    NewId(u32),
+    NewImplicit,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArmourLine<'a> {
     Declaration,
     End,
     Unparsed(&'a str),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Armour<'a> {
     pub declaration: ArmourDeclaration<'a>,
     pub lines: Vec<ArmourLine<'a>>,
@@ -44,41 +37,43 @@ pub struct Armour<'a> {
 
 fn parse_select_armour<'a, E: ParseError<&'a str>>(
     input: &'a str
-) -> IResult<&'a str, Either<u32, &'a str>, E> {
+) -> IResult<&'a str, ArmourDeclaration<'a>, E> {
     let (input, _) = tag("#selectarmor")(input)?;
     let (input, _) = space0(input)?;
     let (input, either_id_name) = alt((
-        parse_id_either,
-        parse_name_either,
+        map(parse_id, |id| ArmourDeclaration::SelectId(id)),
+        map(parse_name, |name| ArmourDeclaration::SelectName(name)),
     ))(input)?;
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
 
     Ok((input, either_id_name))
 }
 
 fn parse_new_armour<'a, E: ParseError<&'a str>>(
     input: &'a str
-) -> IResult<&'a str, Option<u32>, E> {
+) -> IResult<&'a str, ArmourDeclaration<'a>, E> {
     let (input, _) = tag("#newarmor")(input)?;
     let (input, _) = space0(input)?;
     let (input, opt_armour_id_str) = opt(digit1)(input)?;
     let opt_armour_id = opt_armour_id_str
         .map(|armour_id_str| u32::from_str(armour_id_str).unwrap_or_else(|_| panic!("could not parse valid integer id from '{}'", armour_id_str))); // FIXME
 
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
+    let declaration = match opt_armour_id {
+        Some(armour_id) => ArmourDeclaration::NewId(armour_id),
+        None => ArmourDeclaration::NewImplicit,
+    };
 
-    Ok((input, opt_armour_id))
+    Ok((input, declaration))
 }
 
 fn parse_armour_declaration<'a, E: ParseError<&'a str>>(
     input: &'a str
 ) -> IResult<&'a str, ArmourDeclaration<'a>, E> {
+    let (input, _) = space0(input)?;
     let (input, armour_declaration) = alt((
-        map(parse_new_armour, |opt_id| ArmourDeclaration::NewArmour(opt_id)),
-        map(parse_select_armour, |either_id_name| ArmourDeclaration::select_from_either(either_id_name))
+        parse_new_armour,
+        parse_select_armour,
     ))(input)?;
+    let (input, _) = parse_comment_line_end(input)?;
 
     Ok((input, armour_declaration))
 }
@@ -98,8 +93,7 @@ pub fn parse_armour<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a s
     let (input, _) = tag("#end")(input)?;
     lines.push(ArmourLine::End);
 
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
+    let (input, _) = parse_comment_line_end(input)?;
 
 
     Ok((input, Armour {

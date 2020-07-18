@@ -9,25 +9,25 @@ use std::str::FromStr;
 use nom::IResult;
 use nom::sequence::tuple;
 
-use crate::parser::{parse_id};
+use crate::parser::{parse_id, parse_comment_line_end};
 
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum NationDeclaration {
     SelectId(u32), // select number only
-    NewNation, // no new with number allowed
+    NewImplicit, // no new with number allowed
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum NationLine<'a> {
     Declaration,
     End,
     Unparsed(&'a str),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Nation<'a> {
     pub declaration: NationDeclaration,
     pub lines: Vec<NationLine<'a>>,
@@ -35,35 +35,31 @@ pub struct Nation<'a> {
 
 fn parse_select_nation<'a, E: ParseError<&'a str>>(
     input: &'a str
-) -> IResult<&'a str, u32, E> {
+) -> IResult<&'a str, NationDeclaration, E> {
     let (input, _) = tag("#selectnation")(input)?;
     let (input, _) = space0(input)?;
     let (input, id) = parse_id(input)?;
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
 
-    Ok((input, id))
+    Ok((input, NationDeclaration::SelectId(id)))
 }
 
 fn parse_new_nation<'a, E: ParseError<&'a str>>(
     input: &'a str
-) -> IResult<&'a str, (), E> {
+) -> IResult<&'a str, NationDeclaration, E> {
     let (input, _) = tag("#newnation")(input)?;
-    let (input, _) = space0(input)?;
-
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
-
-    Ok((input, ()))
+    Ok((input, NationDeclaration::NewImplicit))
 }
 
 fn parse_nation_declaration<'a, E: ParseError<&'a str>>(
     input: &'a str
 ) -> IResult<&'a str, NationDeclaration, E> {
+    let (input, _) = space0(input)?;
+
     let (input, weapon_declaration) = alt((
-        map(parse_new_nation, |()| NationDeclaration::NewNation),
-        map(parse_select_nation, |id| NationDeclaration::SelectId(id)),
+        parse_new_nation,
+        parse_select_nation,
     ))(input)?;
+    let (input, _) = parse_comment_line_end(input)?;
 
     Ok((input, weapon_declaration))
 }
@@ -84,8 +80,7 @@ pub fn parse_nation<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a s
     let (input, _) = tag("#end")(input)?;
     lines.push(NationLine::End);
 
-    let (input, _) = opt(not_line_ending)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
+    let (input, _) = parse_comment_line_end(input)?;
 
 
     Ok((input, Nation {
