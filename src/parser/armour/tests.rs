@@ -1,6 +1,5 @@
 use super::*;
 
-
 #[test]
 fn parse_armour_1() {
     let input = r#"#newarmor 799
@@ -19,15 +18,16 @@ fn parse_armour_1() {
         other => panic!("Unexpected declaration: {:?}", other),
     }
 
-    assert_eq!(armour.lines, vec![
-        ArmourLine::Declaration,
-        ArmourLine::Unparsed("#name \"Bronze Hauberk of Heroes\""),
-        ArmourLine::Unparsed("#magicarmor"),
-        ArmourLine::Unparsed("#prot 18"),
-        ArmourLine::Unparsed("#rcost 10"),
-        ArmourLine::Unparsed("#type 5"),
-        ArmourLine::Unparsed("#def -1"),
-        ArmourLine::Unparsed("#enc 2"),
-        ArmourLine::End,
-    ]);
+    assert_eq!(
+        armour.inner_lines,
+        vec![
+            ArmourLine::Unparsed("#name \"Bronze Hauberk of Heroes\""),
+            ArmourLine::Unparsed("#magicarmor"),
+            ArmourLine::Unparsed("#prot 18"),
+            ArmourLine::Unparsed("#rcost 10"),
+            ArmourLine::Unparsed("#type 5"),
+            ArmourLine::Unparsed("#def -1"),
+            ArmourLine::Unparsed("#enc 2"),
+        ]
+    );
 }

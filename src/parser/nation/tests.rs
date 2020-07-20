@@ -23,21 +23,22 @@ fn parse_nation_edit() {
         other => panic!("Unexpected decl: {:?}", other),
     }
 
-    assert_eq!(nation.lines, vec![
-        NationLine::Declaration,
-        NationLine::Unparsed("#hatesterr 32 -- Non swamp start if at all possible."),
-        NationLine::Unparsed("#likespop 103 -- cynocephaleans"),
-        NationLine::Unparsed("#uwrec 5760"),
-        NationLine::Unparsed("#uwrec 5761"),
-        NationLine::Unparsed("#uwrec 5762"),
-        NationLine::Unparsed("#uwcom 5767"),
-        NationLine::Unparsed("#uwcom 5768"),
-        NationLine::Unparsed("#swamprec 5769"),
-        NationLine::Unparsed("#swamprec 5770"),
-        NationLine::Unparsed("#swamprec 5771"),
-        NationLine::Unparsed("#swampcom 5772"),
-        NationLine::End,
-    ]);
+    assert_eq!(
+        nation.inner_lines,
+        vec![
+            NationLine::Unparsed("#hatesterr 32 -- Non swamp start if at all possible."),
+            NationLine::Unparsed("#likespop 103 -- cynocephaleans"),
+            NationLine::Unparsed("#uwrec 5760"),
+            NationLine::Unparsed("#uwrec 5761"),
+            NationLine::Unparsed("#uwrec 5762"),
+            NationLine::Unparsed("#uwcom 5767"),
+            NationLine::Unparsed("#uwcom 5768"),
+            NationLine::Unparsed("#swamprec 5769"),
+            NationLine::Unparsed("#swamprec 5770"),
+            NationLine::Unparsed("#swamprec 5771"),
+            NationLine::Unparsed("#swampcom 5772"),
+        ]
+    );
 }
 
 #[test]
@@ -209,8 +210,7 @@ Priests: Powerful. Dominion kills 0.1 percent of population per candle and per m
         other => panic!("Unexpected decl: {:?}", other),
     }
 
-    assert_eq!(nation.lines, vec![
-        NationLine::Declaration,
+    assert_eq!(nation.inner_lines, vec![
         NationLine::Unparsed("#name \"Karanaac\""),
         NationLine::Unparsed("#epithet \"Geodetic Awakening\""),
         NationLine::Unparsed("#era 1"),
@@ -346,7 +346,6 @@ Priests: Powerful. Dominion kills 0.1 percent of population per candle and per m
         NationLine::Unparsed("#templepic 10"),
         NationLine::Unparsed("#merccost 100"),
         NationLine::Unparsed("#labcost 1000"),
-        NationLine::End,
     ]);
 }
 
@@ -446,8 +445,7 @@ Priests: Shaman-mages. Plentiful but of average strength."
         other => panic!("Unexpected decl: {:?}", other),
     }
 
-    assert_eq!(nation.lines, vec![
-        NationLine::Declaration,
+    assert_eq!(nation.inner_lines, vec![
         NationLine::Unparsed("#name \"Karakor\""),
         NationLine::Unparsed("#epithet \"Empire Over the Steppe\""),
         NationLine::Unparsed("#era 2"),
@@ -522,6 +520,5 @@ Priests: Shaman-mages. Plentiful but of average strength."
         NationLine::Unparsed("#addgod \"Draconian Emperor\""),
         NationLine::Unparsed("#addgod \"Draconian Ancestor\""),
         NationLine::Unparsed("#cheapgod40 2465 --statue of war"),
-        NationLine::End,
     ]);
 }

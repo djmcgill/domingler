@@ -1,6 +1,5 @@
-#![recursion_limit = "128"]
 mod parser;
-
+use nom::error::VerboseError;
 pub fn main() {
-    unimplemented!()
+    let _ = parser::parse_mod::<VerboseError<&str>>("").unwrap();
 }

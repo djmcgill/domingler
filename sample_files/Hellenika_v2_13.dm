@@ -41339,7 +41339,7 @@ But now, having been awakened from his geological slumber by the conjugated powe
 #twiceborn 4697
 #holy
 #voidsanity 10
-#twiceborn 4697
+-- #twiceborn 4697
 #end
 
 #newmonster 4696
