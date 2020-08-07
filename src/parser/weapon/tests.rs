@@ -30,19 +30,19 @@ fn parse_weapon_1() {
     let (_, weapon) = parse_weapon::<()>(input).unwrap();
 
     match weapon.declaration {
-        WeaponDeclaration::NewId(852) => (), // pass
+        WeaponDeclaration::NewId(WeaponId(852)) => (), // pass
         other => panic!("Unexpected weapon declaration: {:?}", other),
     }
 
     assert_eq!(
         weapon.inner_lines,
         vec![
-            WeaponLine::Unparsed("#name \"Sunlight Blade\""),
-            WeaponLine::Unparsed("#dmg 1"),
-            WeaponLine::Unparsed("#shock"),
-            WeaponLine::Unparsed("#magic"),
-            WeaponLine::Unparsed("#armornegating"),
-            WeaponLine::Unparsed("#nostr"),
+            Either::Right(WeaponLine::Name), // ("#name \"Sunlight Blade\"")),
+            Either::Left("#dmg 1"),
+            Either::Left("#shock"),
+            Either::Left("#magic"),
+            Either::Left("#armornegating"),
+            Either::Left("#nostr"),
         ]
     );
 }
@@ -65,9 +65,9 @@ fn parse_weapon_2() {
     assert_eq!(
         weapon.inner_lines,
         vec![
-            WeaponLine::Unparsed("#copyweapon 20 -- Regular Ass Bite"),
-            WeaponLine::Unparsed("#name \"Magic Bite\""),
-            WeaponLine::Unparsed("#magic"),
+            Either::Right(WeaponLine::CopyWeapon), // ("#copyweapon 20 -- Regular Ass Bite"),
+            Either::Right(WeaponLine::Name), // ("#name \"Magic Bite\""),
+            Either::Left("#magic"),
         ]
     );
 }
@@ -80,12 +80,12 @@ fn parse_weapon_3() {
 
     let (_, weapon) = parse_weapon::<()>(input).unwrap();
     match weapon.declaration {
-        WeaponDeclaration::SelectName("Swallow") => (), // pass
+        WeaponDeclaration::SelectName(WeaponName("Swallow")) => (), // pass
         other => panic!("Unexpected decl: {:?}", other),
     }
 
     assert_eq!(
         weapon.inner_lines,
-        vec![WeaponLine::Unparsed("#explspr 10259 -- Slurpy Signal"),]
+        vec![Either::Left("#explspr 10259 -- Slurpy Signal"),]
     );
 }

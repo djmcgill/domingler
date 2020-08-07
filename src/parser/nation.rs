@@ -1,6 +1,6 @@
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
-use nom::character::complete::space0;
+use nom::character::complete::{space0, space1};
 use nom::error::ParseError;
 use nom::IResult;
 
@@ -31,7 +31,7 @@ fn parse_select_nation<'a, E: ParseError<&'a str>>(
     input: &'a str,
 ) -> IResult<&'a str, NationDeclaration, E> {
     let (input, _) = tag("#selectnation")(input)?;
-    let (input, _) = space0(input)?;
+    let (input, _) = space1(input)?;
     let (input, id) = parse_id(input)?;
 
     Ok((input, NationDeclaration::SelectId(id)))

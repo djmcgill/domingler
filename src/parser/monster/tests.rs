@@ -59,18 +59,18 @@ fn parse_monster_example() {
     let (_, monster) = parse_monster::<VerboseError<&str>>(input).unwrap();
 
     match monster.declaration {
-        MonsterDeclaration::NewId(4837) => (), // pass
+        MonsterDeclaration::NewId(MonsterId(4837)) => (), // pass
         other => panic!("Unexpected declaration: {:?}", other),
     }
 
-    assert_eq!(monster.name, Some("Elder Stone"));
-    assert_eq!(monster.owns_mon_rec, Some(Right("foo")));
-    assert_eq!(monster.mon_present_rec, Some(Left(-30)));
+    assert_eq!(monster.name, Some(MonsterName("Elder Stone")));
+    assert_eq!(monster.owns_mon_rec, Some(MonsterIdOrMontagOrName(Right(MonsterName("foo")))));
+    assert_eq!(monster.mon_present_rec, Some(MonsterIdOrMontagOrName(Left(MonsterIdOrMontag(-30)))));
 
     let (referenced_ids, referenced_names, next, previous) =
         monster.referenced_monster_ids_and_names();
-    assert_eq!(referenced_ids, vec![-30]);
-    assert_eq!(referenced_names, vec!["foo"]);
+    assert_eq!(referenced_ids, vec![MonsterIdOrMontag(-30)]);
+    assert_eq!(referenced_names, vec![MonsterName("foo")]);
     assert!(!next);
     assert!(!previous);
 
