@@ -300,7 +300,9 @@ lazy_static! {
             copyitem|\
             copyspr|\
             req_targitem|\
-            req_targnoitem\
+            req_targnoitem|\
+            req_worlditem|\
+            req_noworlditem\
         )[ \t]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
@@ -551,6 +553,7 @@ lazy_static! {
             notdomshape|\
             slaver|\
             req_godismnr|\
+            req_godisnotmnr|\
             notmnr|\
             batstartsum1d3\
         )[ \t]+)\
@@ -669,6 +672,8 @@ lazy_static! {
     pub static ref USE_GLOBAL_ENCHANTMENT: Regex = Regex::new("^\
         (?P<prefix>[ \t]*#(?:\
             enchrebate50|\
+            enchrebate20|\
+            enchrebate10|\
             req_noench|\
             req_ench|\
             req_myench|\
