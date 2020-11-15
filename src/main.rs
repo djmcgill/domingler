@@ -19,16 +19,16 @@ use mod_definition::*;
 lazy_static! {
     static ref MOD_NAME: Regex = Regex::new(
         "^\
-         (?P<prefix>#modname[ \t]+\")\
+         (?P<prefix>[ \t]*#modname[ \t]+\")\
          (?P<name>[^\"]+)\
          (?P<suffix>\".*)$\
          "
     )
     .unwrap();
 
-    static ref END: Regex = Regex::new("^#end").unwrap();
+    static ref END: Regex = Regex::new("^[ \t]*#end").unwrap();
 
-    static ref SPELL_BLOCK_START: Regex = Regex::new("^#(newspell|selectspell)").unwrap();
+    static ref SPELL_BLOCK_START: Regex = Regex::new("^[ \t]*#(newspell|selectspell)").unwrap();
 
     static ref SPELL_EFFECT: Regex = Regex::new("^\
         (?P<prefix>[ \t]*#effect[ \t]+)\
