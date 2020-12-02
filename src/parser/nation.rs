@@ -202,6 +202,8 @@ pub struct Nation<'a> {
 
     pub guard_spirit: Option<MonsterIdOrMontagOrName<'a>>,
 
+    // FIXME: National Reanimation Lists
+    //        Use the various monster summoning commands such as #makemonsters1…5 with a #montag value to create custom reanimation lists for those priests that need it.
 
     /// This field does not contain the declaration or the end
     pub inner_lines: Vec<Either<&'a str, NationLine<'a>>>,
