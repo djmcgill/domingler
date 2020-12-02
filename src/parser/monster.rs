@@ -20,6 +20,10 @@ pub struct MonsterIdOrMontag(pub i32);
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct MonsterIdOrMontagOrName<'a>(pub Either<MonsterIdOrMontag, MonsterName<'a>>);
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct MonsterIdOrName<'a>(pub Either<MonsterId, MonsterName<'a>>);
+
+
 pub fn parse_id_or_montag<'a>(
     input: &'a str,
 ) -> IResult<&'a str, MonsterIdOrMontag, VerboseError<&'a str>> {
