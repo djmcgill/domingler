@@ -3,12 +3,11 @@ use crate::parser::armour::ArmourDeclaration;
 use crate::parser::monster::MonsterDeclaration;
 use crate::parser::nation::NationDeclaration;
 use crate::parser::weapon::WeaponDeclaration;
-use nom::error::VerboseError;
 
 #[test]
 fn parse_all_of_hellenika() {
     let mod_contents = std::fs::read_to_string("sample_files/Hellenika_v2_13.dm").unwrap();
-    let (_, parsed_mod) = parse_mod::<VerboseError<&str>>(&mod_contents).unwrap();
+    let (_, parsed_mod) = parse_mod(&mod_contents).unwrap();
 
     assert_eq!(parsed_mod.0[0], ModItem::ModName("Hellenika v2.13f"));
 

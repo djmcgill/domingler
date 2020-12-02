@@ -1,7 +1,5 @@
 use super::*;
 
-use nom::error::VerboseError;
-
 #[test]
 fn parse_monster_example() {
     let input = r#"#newmonster 4837
@@ -56,7 +54,7 @@ fn parse_monster_example() {
 #nametype 142
 #end"#;
 
-    let (_, monster) = parse_monster::<VerboseError<&str>>(input).unwrap();
+    let (_, monster) = parse_monster(input).unwrap();
 
     match monster.declaration {
         MonsterDeclaration::NewId(MonsterId(4837)) => (), // pass
@@ -64,8 +62,14 @@ fn parse_monster_example() {
     }
 
     assert_eq!(monster.name, Some(MonsterName("Elder Stone")));
-    assert_eq!(monster.owns_mon_rec, Some(MonsterIdOrMontagOrName(Right(MonsterName("foo")))));
-    assert_eq!(monster.mon_present_rec, Some(MonsterIdOrMontagOrName(Left(MonsterIdOrMontag(-30)))));
+    assert_eq!(
+        monster.owns_mon_rec,
+        Some(MonsterIdOrMontagOrName(Right(MonsterName("foo"))))
+    );
+    assert_eq!(
+        monster.mon_present_rec,
+        Some(MonsterIdOrMontagOrName(Left(MonsterIdOrMontag(-30))))
+    );
 
     let (referenced_ids, referenced_names, next, previous) =
         monster.referenced_monster_ids_and_names();

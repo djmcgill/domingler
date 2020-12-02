@@ -3,7 +3,6 @@ use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, space0, space1}; // todo: inspect all usages of space0
 use nom::combinator::{map, opt};
-use nom::error::ParseError;
 use nom::IResult;
 use std::str::FromStr;
 
@@ -21,7 +20,9 @@ pub struct MonsterIdOrMontag(pub i32);
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct MonsterIdOrMontagOrName<'a>(pub Either<MonsterIdOrMontag, MonsterName<'a>>);
 
-pub fn parse_id_or_montag<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, MonsterIdOrMontag, E> {
+pub fn parse_id_or_montag<'a>(
+    input: &'a str,
+) -> IResult<&'a str, MonsterIdOrMontag, VerboseError<&'a str>> {
     let (input, opt_minus) = opt(char('-'))(input)?;
     let (input, pos_number) = map_res(digit1, i32::from_str)(input)?;
     let number = if opt_minus.is_some() {
@@ -32,9 +33,9 @@ pub fn parse_id_or_montag<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult
     Ok((input, MonsterIdOrMontag(number)))
 }
 
-fn parse_id_name_montag_property<'a, E: ParseError<&'a str>>(
+fn parse_id_name_montag_property<'a>(
     property: &'static str,
-) -> impl Fn(&'a str) -> IResult<&'a str, MonsterIdOrMontagOrName, E> {
+) -> impl Fn(&'a str) -> IResult<&'a str, MonsterIdOrMontagOrName, VerboseError<&'a str>> {
     move |input| {
         let (input, _) = tag(property)(input)?;
         let (input, _) = space1(input)?;
@@ -118,11 +119,10 @@ pub enum MonsterLine<'a> {
     BatStartSum9d6,
     Slaver,
     RaiseShape,
-    GrowHp, // TODO: <hit points>
-    ShrinkHp, // TODO: <hit points>
-    XpShape, // TODO: <xp value>
-    Dummy(&'a ()), // never used
-
+    GrowHp,         // TODO: <hit points>
+    ShrinkHp,       // TODO: <hit points>
+    XpShape,        // TODO: <xp value>
+    _Dummy(&'a ()), // never used
 }
 
 impl<'a> MonsterLine<'a> {
@@ -191,11 +191,10 @@ impl<'a> MonsterLine<'a> {
             MonsterLine::GrowHp => "#growhp",
             MonsterLine::ShrinkHp => "#shrinkhp",
             MonsterLine::XpShape => "#xpshape",
-            MonsterLine::Dummy(_) => unimplemented!(),
+            MonsterLine::_Dummy(_) => unimplemented!(),
         }
     }
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Monster<'a> {
@@ -266,7 +265,9 @@ pub struct Monster<'a> {
     pub inner_lines: Vec<Either<&'a str, MonsterLine<'a>>>,
 }
 impl<'a> Monster<'a> {
-    pub fn referenced_monster_ids_and_names(&self) -> (Vec<MonsterIdOrMontag>, Vec<MonsterName>, bool, bool) {
+    pub fn referenced_monster_ids_and_names(
+        &self,
+    ) -> (Vec<MonsterIdOrMontag>, Vec<MonsterName>, bool, bool) {
         // TODO: these should be sets instead
         let mut ids = vec![];
         let mut names = vec![];
@@ -373,22 +374,24 @@ fn reference_id_or_name<A: Copy, B: Copy>(
     }
 }
 
-fn parse_select_monster<'a, E: ParseError<&'a str>>(
+fn parse_select_monster<'a>(
     input: &'a str,
-) -> IResult<&'a str, MonsterDeclaration<'a>, E> {
+) -> IResult<&'a str, MonsterDeclaration<'a>, VerboseError<&'a str>> {
     let (input, _) = tag("#selectmonster")(input)?;
     let (input, _) = space0(input)?;
     let (input, either_id_name) = alt((
         map(parse_id, |id| MonsterDeclaration::SelectId(MonsterId(id))),
-        map(parse_name, |name| MonsterDeclaration::SelectName(MonsterName(name))),
+        map(parse_name, |name| {
+            MonsterDeclaration::SelectName(MonsterName(name))
+        }),
     ))(input)?;
 
     Ok((input, either_id_name))
 }
 
-fn parse_new_monster<'a, E: ParseError<&'a str>>(
+fn parse_new_monster<'a>(
     input: &'a str,
-) -> IResult<&'a str, MonsterDeclaration<'a>, E> {
+) -> IResult<&'a str, MonsterDeclaration<'a>, VerboseError<&'a str>> {
     let (input, _) = tag("#newmonster")(input)?;
     let (input, _) = space0(input)?;
     let (input, opt_id_str) = opt(digit1)(input)?;
@@ -405,9 +408,9 @@ fn parse_new_monster<'a, E: ParseError<&'a str>>(
     Ok((input, declaration))
 }
 
-fn parse_monster_declaration<'a, E: ParseError<&'a str>>(
+fn parse_monster_declaration<'a>(
     input: &'a str,
-) -> IResult<&'a str, MonsterDeclaration<'a>, E> {
+) -> IResult<&'a str, MonsterDeclaration<'a>, VerboseError<&'a str>> {
     let (input, _) = space0(input)?;
 
     let (input, declaration) = alt((parse_new_monster, parse_select_monster))(input)?;
@@ -416,9 +419,7 @@ fn parse_monster_declaration<'a, E: ParseError<&'a str>>(
     Ok((input, declaration))
 }
 
-pub fn parse_monster<'a, E: ParseError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, Monster<'a>, E> {
+pub fn parse_monster<'a>(input: &'a str) -> IResult<&'a str, Monster<'a>, VerboseError<&'a str>> {
     let (input, declaration) = parse_monster_declaration(input)?;
     let mut input = input;
     let mut inner_lines = vec![];
@@ -484,14 +485,14 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
     let mut slaver = None;
 
     loop {
-        if let Ok((remaining_input, found_name)) = parse_string_property::<E>("#name")(input) {
+        if let Ok((remaining_input, found_name)) = parse_string_property("#name")(input) {
             if let Some(old_name) = name.replace(MonsterName(found_name)) {
                 panic!("Monster had duplicate #name: {:?}", old_name); // fixme
             }
             input = remaining_input;
             inner_lines.push(Right(MonsterLine::Name));
         // this can't be the best way to do it
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::OwnsMonRec,
@@ -499,7 +500,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::MonPresentRec,
@@ -507,20 +508,23 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if let Ok((remaining_input, found_id)) = parse_id_property::<E>(MonsterLine::CopyStats.line_tag())(input)
+        } else if let Ok((remaining_input, found_id)) =
+            parse_id_property(MonsterLine::CopyStats.line_tag())(input)
         {
             if let Some(old_id) = copy_stats.replace(MonsterId(found_id)) {
                 panic!("Monster had duplicate #copystats: {:?}", old_id); // fixme
             }
             input = remaining_input;
             inner_lines.push(Right(MonsterLine::CopyStats));
-        } else if let Ok((remaining_input, found_id)) = parse_id_property::<E>(MonsterLine::CopySpr.line_tag())(input) {
+        } else if let Ok((remaining_input, found_id)) =
+            parse_id_property(MonsterLine::CopySpr.line_tag())(input)
+        {
             if let Some(old_id) = copy_spr.replace(MonsterId(found_id)) {
                 panic!("Monster had duplicate #copyspr: {:?}", old_id); // fixme: handle errors properly
             }
             input = remaining_input;
             inner_lines.push(Right(MonsterLine::CopySpr));
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::RaiseShape,
@@ -528,7 +532,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Shapechange,
@@ -536,7 +540,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::ProphetShape,
@@ -544,7 +548,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::FirstShape,
@@ -552,7 +556,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::SecondShape,
@@ -560,7 +564,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::SecondTmpShape,
@@ -568,7 +572,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::ForestShape,
@@ -576,7 +580,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::PlainShape,
@@ -584,7 +588,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::ForeignShape,
@@ -592,7 +596,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::HomeShape,
@@ -600,7 +604,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::DomShape,
@@ -608,7 +612,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::NotDomShape,
@@ -616,7 +620,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::SpringShape,
@@ -624,7 +628,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::SummerShape,
@@ -632,7 +636,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::AutumnShape,
@@ -640,7 +644,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::WinterShape,
@@ -648,7 +652,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::LandShape,
@@ -656,7 +660,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::WaterShape,
@@ -664,7 +668,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Twiceborn,
@@ -672,7 +676,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::DomSummon,
@@ -680,7 +684,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::DomSummon2,
@@ -688,7 +692,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::DomSummon20,
@@ -696,7 +700,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::RareDomSummon,
@@ -704,7 +708,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::TempleTrainer,
@@ -712,7 +716,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::MakeMonsters1,
@@ -720,7 +724,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::MakeMonsters2,
@@ -728,7 +732,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::MakeMonsters3,
@@ -736,7 +740,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::MakeMonsters4,
@@ -744,7 +748,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::MakeMonsters5,
@@ -752,7 +756,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Summon1,
@@ -760,7 +764,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Summon2,
@@ -768,7 +772,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Summon3,
@@ -776,7 +780,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Summon4,
@@ -784,7 +788,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Summon5,
@@ -792,7 +796,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BattleSum1,
@@ -800,7 +804,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BattleSum2,
@@ -808,7 +812,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BattleSum3,
@@ -816,7 +820,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BattleSum4,
@@ -824,7 +828,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BattleSum5,
@@ -832,7 +836,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum1,
@@ -840,7 +844,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum2,
@@ -848,7 +852,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum3,
@@ -856,7 +860,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum4,
@@ -864,7 +868,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum5,
@@ -872,7 +876,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum1d3,
@@ -880,7 +884,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum1d6,
@@ -888,7 +892,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum2d6,
@@ -896,7 +900,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum3d6,
@@ -904,7 +908,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum4d6,
@@ -912,7 +916,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum5d6,
@@ -920,7 +924,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum6d6,
@@ -928,7 +932,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum7d6,
@@ -936,7 +940,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum8d6,
@@ -944,7 +948,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::BatStartSum9d6,
@@ -952,7 +956,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-        } else if parse_id_name_montag_line::<E>(
+        } else if parse_id_name_montag_line(
             &mut input,
             &mut inner_lines,
             MonsterLine::Slaver,
@@ -960,19 +964,24 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         )
         .is_ok()
         {
-
-        } else if let Ok((remaining_input, _)) = tag::<_, _, E>("#growhp")(input){
+        } else if let Ok((remaining_input, _)) =
+            tag::<_, _, VerboseError<&'a str>>("#growhp")(input)
+        {
             input = remaining_input;
             inner_lines.push(Right(MonsterLine::GrowHp));
-        } else if let Ok((remaining_input, _)) = tag::<_, _, E>("#shrinkhp")(input){
+        } else if let Ok((remaining_input, _)) =
+            tag::<_, _, VerboseError<&'a str>>("#shrinkhp")(input)
+        {
             input = remaining_input;
             inner_lines.push(Right(MonsterLine::ShrinkHp));
-        } else if let Ok((remaining_input, _)) = tag::<_, _, E>("#xpshape")(input){
+        } else if let Ok((remaining_input, _)) =
+            tag::<_, _, VerboseError<&'a str>>("#xpshape")(input)
+        {
             input = remaining_input;
             inner_lines.push(Right(MonsterLine::XpShape));
 
-            // These two must be last
-        } else if let Ok((remaining_input, _)) = tag::<_, _, E>("#end")(input) {
+        // These two must be last
+        } else if let Ok((remaining_input, _)) = tag::<_, _, VerboseError<&'a str>>("#end")(input) {
             input = remaining_input;
             break; // we're done
         } else {
@@ -982,7 +991,7 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
             inner_lines.push(Left(unparsed_line));
         }
     }
-    
+
     let monster = Monster {
         declaration,
         name,
@@ -1048,20 +1057,17 @@ pub fn parse_monster<'a, E: ParseError<&'a str>>(
         inner_lines,
     };
 
-    Ok((
-        input,
-        monster,
-    ))
+    Ok((input, monster))
 }
 
-fn parse_id_name_montag_line<'a, E: ParseError<&'a str>>(
+fn parse_id_name_montag_line<'a>(
     input: &mut &'a str,
     inner_lines: &mut Vec<Either<&'a str, MonsterLine<'a>>>,
     desired_line: MonsterLine<'a>,
     value: &mut Option<MonsterIdOrMontagOrName<'a>>,
 ) -> Result<(), ()> {
     let tag = desired_line.line_tag();
-    match parse_id_name_montag_property::<E>(tag)(*input) {
+    match parse_id_name_montag_property(tag)(*input) {
         Err(_e) => Err(()), // TODO
         Ok((remaining_input, found_id)) => {
             if let Some(old_id) = value.replace(found_id) {

@@ -1,8 +1,7 @@
-use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until};
 use nom::character::complete::{space0, space1};
-use nom::error::ParseError;
 use nom::IResult;
+use nom::{branch::alt, error::VerboseError};
 
 use crate::parser::{parse_comment_line_end, parse_id};
 
@@ -27,9 +26,9 @@ pub struct Nation<'a> {
     pub inner_lines: Vec<NationLine<'a>>,
 }
 
-fn parse_select_nation<'a, E: ParseError<&'a str>>(
+fn parse_select_nation<'a>(
     input: &'a str,
-) -> IResult<&'a str, NationDeclaration, E> {
+) -> IResult<&'a str, NationDeclaration, VerboseError<&'a str>> {
     let (input, _) = tag("#selectnation")(input)?;
     let (input, _) = space1(input)?;
     let (input, id) = parse_id(input)?;
@@ -37,16 +36,16 @@ fn parse_select_nation<'a, E: ParseError<&'a str>>(
     Ok((input, NationDeclaration::SelectId(id)))
 }
 
-fn parse_new_nation<'a, E: ParseError<&'a str>>(
+fn parse_new_nation<'a>(
     input: &'a str,
-) -> IResult<&'a str, NationDeclaration, E> {
+) -> IResult<&'a str, NationDeclaration, VerboseError<&'a str>> {
     let (input, _) = tag("#newnation")(input)?;
     Ok((input, NationDeclaration::NewImplicit))
 }
 
-fn parse_nation_declaration<'a, E: ParseError<&'a str>>(
+fn parse_nation_declaration<'a>(
     input: &'a str,
-) -> IResult<&'a str, NationDeclaration, E> {
+) -> IResult<&'a str, NationDeclaration, VerboseError<&'a str>> {
     let (input, _) = space0(input)?;
 
     let (input, weapon_declaration) = alt((parse_new_nation, parse_select_nation))(input)?;
@@ -55,7 +54,7 @@ fn parse_nation_declaration<'a, E: ParseError<&'a str>>(
     Ok((input, weapon_declaration))
 }
 
-pub fn parse_nation<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Nation<'a>, E> {
+pub fn parse_nation<'a>(input: &'a str) -> IResult<&'a str, Nation<'a>, VerboseError<&'a str>> {
     let mut inner_lines = vec![];
     let (input, declaration) = parse_nation_declaration(input)?;
 

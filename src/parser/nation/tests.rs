@@ -16,7 +16,7 @@ fn parse_nation_edit() {
 #swampcom 5772
 #end
 "#;
-    let (_, nation) = parse_nation::<()>(input).unwrap();
+    let (_, nation) = parse_nation(input).unwrap();
 
     match nation.declaration {
         NationDeclaration::SelectId(71) => (), // pass
@@ -203,7 +203,7 @@ Priests: Powerful. Dominion kills 0.1 percent of population per candle and per m
 
 #end
 "#;
-    let (_, nation) = parse_nation::<()>(input).unwrap();
+    let (_, nation) = parse_nation(input).unwrap();
 
     match nation.declaration {
         NationDeclaration::SelectId(243) => (), // pass
@@ -438,7 +438,7 @@ Priests: Shaman-mages. Plentiful but of average strength."
 #cheapgod40 2465 --statue of war
 #end
 "#;
-    let (_, nation) = parse_nation::<()>(input).unwrap();
+    let (_, nation) = parse_nation(input).unwrap();
 
     match nation.declaration {
         NationDeclaration::NewImplicit => (), // pass

@@ -1,12 +1,10 @@
+use crate::parser::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, space0};
 use nom::combinator::{map, opt};
-use nom::error::ParseError;
 use nom::IResult;
 use std::str::FromStr;
-use either::*;
-use crate::parser::*;
 
 #[cfg(test)]
 mod tests;
@@ -34,14 +32,14 @@ pub enum ArmourDeclaration<'a> {
 pub enum ArmourLine<'a> {
     Name,
     CopyArmour,
-    Dummy(&'a ()),
+    _Dummy(&'a ()),
 }
 impl<'a> ArmourLine<'a> {
     pub fn line_tag(&self) -> &'static str {
         match self {
             ArmourLine::Name => "#name",
             ArmourLine::CopyArmour => "#copyarmor",
-            ArmourLine::Dummy(_) => unimplemented!(),
+            ArmourLine::_Dummy(_) => unimplemented!(),
         }
     }
 }
@@ -55,22 +53,24 @@ pub struct Armour<'a> {
     pub inner_lines: Vec<Either<&'a str, ArmourLine<'a>>>,
 }
 
-fn parse_select_armour<'a, E: ParseError<&'a str>>(
+fn parse_select_armour<'a>(
     input: &'a str,
-) -> IResult<&'a str, ArmourDeclaration<'a>, E> {
+) -> IResult<&'a str, ArmourDeclaration<'a>, VerboseError<&'a str>> {
     let (input, _) = tag("#selectarmor")(input)?;
     let (input, _) = space0(input)?;
     let (input, either_id_name) = alt((
         map(parse_id, |id| ArmourDeclaration::SelectId(ArmourId(id))),
-        map(parse_name, |name| ArmourDeclaration::SelectName(ArmourName(name))),
+        map(parse_name, |name| {
+            ArmourDeclaration::SelectName(ArmourName(name))
+        }),
     ))(input)?;
 
     Ok((input, either_id_name))
 }
 
-fn parse_new_armour<'a, E: ParseError<&'a str>>(
+fn parse_new_armour<'a>(
     input: &'a str,
-) -> IResult<&'a str, ArmourDeclaration<'a>, E> {
+) -> IResult<&'a str, ArmourDeclaration<'a>, VerboseError<&'a str>> {
     let (input, _) = tag("#newarmor")(input)?;
     let (input, _) = space0(input)?;
     let (input, opt_armour_id_str) = opt(digit1)(input)?;
@@ -87,9 +87,9 @@ fn parse_new_armour<'a, E: ParseError<&'a str>>(
     Ok((input, declaration))
 }
 
-fn parse_armour_declaration<'a, E: ParseError<&'a str>>(
+fn parse_armour_declaration<'a>(
     input: &'a str,
-) -> IResult<&'a str, ArmourDeclaration<'a>, E> {
+) -> IResult<&'a str, ArmourDeclaration<'a>, VerboseError<&'a str>> {
     let (input, _) = space0(input)?;
     let (input, armour_declaration) = alt((parse_new_armour, parse_select_armour))(input)?;
     let (input, _) = parse_comment_line_end(input)?;
@@ -97,7 +97,7 @@ fn parse_armour_declaration<'a, E: ParseError<&'a str>>(
     Ok((input, armour_declaration))
 }
 
-pub fn parse_armour<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Armour<'a>, E> {
+pub fn parse_armour<'a>(input: &'a str) -> IResult<&'a str, Armour<'a>, VerboseError<&'a str>> {
     let mut inner_lines = vec![];
     let mut name = None;
     let mut copy_armour = None;
@@ -106,21 +106,23 @@ pub fn parse_armour<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a s
     let mut input = input;
 
     loop {
-        if let Ok((remaining_input, found_name)) = parse_string_property::<E>("#name")(input) {
+        if let Ok((remaining_input, found_name)) = parse_string_property("#name")(input) {
             if let Some(old_name) = name.replace(ArmourName(found_name)) {
                 panic!("Armour had duplicate #name: {:?}", old_name); // fixme
             }
             input = remaining_input;
             inner_lines.push(Right(ArmourLine::Name));
-        } else if parse_id_name_line::<E>(
+        } else if parse_id_name_line(
             &mut input,
             &mut inner_lines,
             ArmourLine::CopyArmour,
             &mut copy_armour,
-        ).is_ok() {
+        )
+        .is_ok()
+        {
 
-        // These two must be last
-        } else if let Ok((remaining_input, _)) = tag::<_, _, E>("#end")(input) {
+            // These two must be last
+        } else if let Ok((remaining_input, _)) = tag::<_, _, VerboseError<&'a str>>("#end")(input) {
             input = remaining_input;
             break; // we're done
         } else {
@@ -138,20 +140,17 @@ pub fn parse_armour<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a s
         inner_lines,
     };
 
-    Ok((
-        input,
-        armour,
-    ))
+    Ok((input, armour))
 }
 
-fn parse_id_name_line<'a, E: ParseError<&'a str>>(
+fn parse_id_name_line<'a>(
     input: &mut &'a str,
     inner_lines: &mut Vec<Either<&'a str, ArmourLine<'a>>>,
     desired_line: ArmourLine<'a>,
     value: &mut Option<ArmourIdOrName<'a>>,
 ) -> Result<(), ()> {
     let tag = desired_line.line_tag();
-    match parse_id_name_property::<E>(tag)(*input) {
+    match parse_id_name_property(tag)(*input) {
         Err(_e) => Err(()), // TODO
         Ok((remaining_input, found_id)) => {
             if let Some(old_id) = value.replace(found_id.into()) {

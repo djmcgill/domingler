@@ -11,7 +11,7 @@ fn parse_armour_1() {
 #def -1
 #enc 2
 #end"#;
-    let (_, armour) = parse_armour::<()>(input).unwrap();
+    let (_, armour) = parse_armour(input).unwrap();
 
     match armour.declaration {
         ArmourDeclaration::NewId(ArmourId(799)) => (), // pass

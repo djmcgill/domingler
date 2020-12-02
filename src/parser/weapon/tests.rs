@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn parse_a_name() {
     let input = "\"foo\"";
-    let (remaining, name) = parse_name::<()>(input).unwrap();
+    let (remaining, name) = parse_name(input).unwrap();
     assert_eq!(remaining.len(), 0);
     assert_eq!(name, "foo");
 }
@@ -11,7 +11,7 @@ fn parse_a_name() {
 #[test]
 fn parse_an_id() {
     let input = "39";
-    let (remaining, id) = parse_id::<()>(input).unwrap();
+    let (remaining, id) = parse_id(input).unwrap();
     assert_eq!(remaining.len(), 0);
     assert_eq!(id, 39);
 }
@@ -27,7 +27,7 @@ fn parse_weapon_1() {
 #nostr
 #end
 "#;
-    let (_, weapon) = parse_weapon::<()>(input).unwrap();
+    let (_, weapon) = parse_weapon(input).unwrap();
 
     match weapon.declaration {
         WeaponDeclaration::NewId(WeaponId(852)) => (), // pass
@@ -55,7 +55,7 @@ fn parse_weapon_2() {
 #magic
 #end"#;
 
-    let (_, weapon) = parse_weapon::<()>(input).unwrap();
+    let (_, weapon) = parse_weapon(input).unwrap();
 
     match weapon.declaration {
         WeaponDeclaration::NewImplicit => (), // pass
@@ -66,7 +66,7 @@ fn parse_weapon_2() {
         weapon.inner_lines,
         vec![
             Either::Right(WeaponLine::CopyWeapon), // ("#copyweapon 20 -- Regular Ass Bite"),
-            Either::Right(WeaponLine::Name), // ("#name \"Magic Bite\""),
+            Either::Right(WeaponLine::Name),       // ("#name \"Magic Bite\""),
             Either::Left("#magic"),
         ]
     );
@@ -78,7 +78,7 @@ fn parse_weapon_3() {
 #explspr 10259 -- Slurpy Signal
 #end"#;
 
-    let (_, weapon) = parse_weapon::<()>(input).unwrap();
+    let (_, weapon) = parse_weapon(input).unwrap();
     match weapon.declaration {
         WeaponDeclaration::SelectName(WeaponName("Swallow")) => (), // pass
         other => panic!("Unexpected decl: {:?}", other),
