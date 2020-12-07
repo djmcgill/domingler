@@ -556,6 +556,14 @@ lazy_static! {
             req_godisnotmnr|\
             notmnr|\
             batstartsum1d3\
+            uwdefcom1|\
+            uwdefcom2|\
+            uwdefunit1|\
+            uwdefunit1b|\
+            uwdefunit1c|\
+            uwdefunit1d|\
+            uwdefunit2|\
+            uwdefunit2b|\
         )[ \t]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
