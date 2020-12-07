@@ -555,7 +555,7 @@ lazy_static! {
             req_godismnr|\
             req_godisnotmnr|\
             notmnr|\
-            batstartsum1d3\
+            batstartsum1d3|\
             uwdefcom1|\
             uwdefcom2|\
             uwdefunit1|\
@@ -563,7 +563,7 @@ lazy_static! {
             uwdefunit1c|\
             uwdefunit1d|\
             uwdefunit2|\
-            uwdefunit2b|\
+            uwdefunit2b\
         )[ \t]+)\
         (?P<id>[-]?[[:digit:]]+)\
         (?P<suffix>.*)$\
