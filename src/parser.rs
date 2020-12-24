@@ -123,3 +123,7 @@ fn parse_id_name_property<'a>(
 // struct PopType { pub lines: Vec<Vec<String>> }
 // struct Merc { pub lines: Vec<Vec<String>> }
 // struct Event { pub lines: Vec<Vec<String>> }
+
+trait DominionsCommand {
+    fn line_tag(&self) -> &'static str;
+}

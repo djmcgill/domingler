@@ -34,8 +34,8 @@ pub enum ArmourLine<'a> {
     CopyArmour,
     _Dummy(&'a ()),
 }
-impl<'a> ArmourLine<'a> {
-    pub fn line_tag(&self) -> &'static str {
+impl<'a> DominionsCommand for ArmourLine<'a> {
+    fn line_tag(&self) -> &'static str {
         match self {
             ArmourLine::Name => "#name",
             ArmourLine::CopyArmour => "#copyarmor",

@@ -22,7 +22,14 @@ pub struct MonsterIdOrMontagOrName<'a>(pub Either<MonsterIdOrMontag, MonsterName
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct MonsterIdOrName<'a>(pub Either<MonsterId, MonsterName<'a>>);
-
+impl<'a> From<Either<u32, &'a str>> for MonsterIdOrName<'a> {
+    fn from(either: Either<u32, &'a str>) -> Self {
+        match either {
+            Either::Left(id) => MonsterIdOrName(Either::Left(MonsterId(id))),
+            Either::Right(name) => MonsterIdOrName(Either::Right(MonsterName(name))),
+        }
+    }
+}
 
 pub fn parse_id_or_montag<'a>(
     input: &'a str,
@@ -37,7 +44,7 @@ pub fn parse_id_or_montag<'a>(
     Ok((input, MonsterIdOrMontag(number)))
 }
 
-fn parse_id_name_montag_property<'a>(
+pub fn parse_id_name_montag_property<'a>(
     property: &'static str,
 ) -> impl Fn(&'a str) -> IResult<&'a str, MonsterIdOrMontagOrName, VerboseError<&'a str>> {
     move |input| {
