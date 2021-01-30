@@ -335,7 +335,8 @@ lazy_static! {
             addsite|\
             removesite|\
             hiddensite|\
-            futuresite\
+            futuresite|\
+            onlyatsite\
         )[ \t]+)\
         (?P<id>[[:digit:]]+)\
         (?P<suffix>.*)$\
